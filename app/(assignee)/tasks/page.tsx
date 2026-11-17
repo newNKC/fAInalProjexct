@@ -6,6 +6,7 @@ import { InfoCircle } from "@tailgrids/icons";
 import Banner from "@/components/banner";
 import FilterChips from "@/components/filter-chips";
 import PageHeader from "@/components/page-header";
+import { useQueryState } from "@/components/use-query-state";
 import ProgressBar from "@/components/progress-bar";
 import SortTable, { type Column } from "@/components/sort-table";
 import StatCard from "@/components/stat-card";
@@ -24,7 +25,7 @@ export default function Page() {
     const store = useStore();
     const user = store.user!;
     const today = todayISO();
-    const [filter, setFilter] = useState<"open" | "done" | "all">("open");
+    const [filter, setFilter] = useQueryState<"open" | "done" | "all">("show", "open");
     const [editing, setEditing] = useState<number | null>(null);
 
     const mine = store.tasks.filter((t) => t.assigneeId === user.id && isLeafTask(t, store.tasks));

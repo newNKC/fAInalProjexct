@@ -4,6 +4,7 @@ import { useState } from "react";
 import CategoryBadge from "@/components/category-badge";
 import FilterChips from "@/components/filter-chips";
 import PageHeader from "@/components/page-header";
+import { useQueryState } from "@/components/use-query-state";
 import ProgressBar from "@/components/progress-bar";
 import { Card } from "@/components/request-parts";
 import { fieldClass } from "@/components/request-form";
@@ -51,8 +52,9 @@ function Dashboard() {
     if (user.roles.includes("head")) scopes.push({ value: "target", label: `คำขอที่เข้า${user.dept}` });
     if (user.roles.includes("approver")) scopes.push({ value: "source", label: `คำขอของ${user.dept}` });
 
-    const [scope, setScope] = useState<Scope>(scopes[0].value);
-    const [period, setPeriod] = useState<Period>("year");
+    const [scopeParam, setScope] = useQueryState<Scope>("scope", scopes[0].value);
+    const scope = scopes.some((s) => s.value === scopeParam) ? scopeParam : scopes[0].value;
+    const [period, setPeriod] = useQueryState<Period>("period", "year");
     const [custom, setCustom] = useState({ from: "", to: "" });
 
     const inScope = store.requests.filter((r) =>

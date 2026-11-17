@@ -1,13 +1,13 @@
 'use client'
 
 import Link from "next/link";
-import { useState } from "react";
 import { CheckCircle1, InfoCircle, Plus, Reply } from "@tailgrids/icons";
 import { buttonStyles } from "@/components/tailgrids/core/button";
 import Banner from "@/components/banner";
 import CategoryBadge from "@/components/category-badge";
 import FilterChips from "@/components/filter-chips";
 import PageHeader from "@/components/page-header";
+import { useQueryState } from "@/components/use-query-state";
 import ProgressBar from "@/components/progress-bar";
 import SortTable, { type Column } from "@/components/sort-table";
 import StatusBadge, { STATUS_LABEL } from "@/components/status-badge";
@@ -18,9 +18,9 @@ import { useStore } from "@/data/store";
 export default function Page() {
     const store = useStore();
     const user = store.user!;
-    const [cat, setCat] = useState("all");
-    const [state, setState] = useState<"all" | "open" | "closed">("all");
-    const [who, setWho] = useState<"all" | "mine">("all");
+    const [cat, setCat] = useQueryState<string>("cat", "all");
+    const [state, setState] = useQueryState<"all" | "open" | "closed">("state", "all");
+    const [who, setWho] = useQueryState<"all" | "mine">("who", "all");
 
     const onlyRequester = user.roles.length === 1 && user.roles[0] === "requester";
     const title = onlyRequester ? "คำขอของฉัน" : `คำขอใน${deptKind(user.dept)}`;

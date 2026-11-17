@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, CheckCircle1 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
@@ -31,15 +31,19 @@ export default function Page() {
     const [remember, setRemember] = useState(true);
     const [error, setError] = useState("");
 
-    // เข้ามาหน้านี้ → ล้างผู้ใช้ที่ล็อกอินไว้
-    const { ready, logout } = store;
+    // เข้าสู่ระบบอยู่แล้ว (เช่น กดย้อนกลับมาหน้านี้) → พากลับหน้าแรกของตัวเอง ไม่ล็อกเอาต์เอง
+    // ออกจากระบบทำได้จากปุ่ม "ออกจากระบบ" ใน sidebar เท่านั้น
+    const { ready, user } = store;
     useEffect(() => {
-        if (ready) logout();
-    }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (ready && user) router.replace(roleHome[primaryRole(user)]);
+    }, [ready, user, router]);
+
+    useEffect(() => { document.title = "เข้าสู่ระบบ · ระบบจัดการคำขอ"; }, []);
 
     const go = (user: User) => router.push(roleHome[primaryRole(user)]);
 
-    const login = () => {
+    const login = (e?: FormEvent) => {
+        e?.preventDefault();
         if (!email.trim() || !password.trim()) return setError("กรุณากรอกอีเมลและรหัสผ่าน");
         const user = store.login(email, remember);   // prototype: รหัสผ่านอะไรก็ได้
         if (!user) return setError("ไม่พบอีเมลนี้ในรายชื่อพนักงาน หรือบัญชียังไม่มีโรลในระบบ");
@@ -72,27 +76,26 @@ export default function Page() {
             {/* ===== ฟอร์มเข้าสู่ระบบ ===== */}
             <section className="flex items-center justify-center p-10">
                 <div className="flex w-[440px] flex-col gap-4">
-                    <div className="flex flex-col gap-4 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-line">
+                    <form onSubmit={login} noValidate className="flex flex-col gap-4 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-line">
                         <div>
                             <h2 className="text-2xl font-bold text-ink">เข้าสู่ระบบ</h2>
                             <p className="text-sm text-ink-2">ใช้บัญชีพนักงานของบริษัท</p>
                         </div>
                         <TextField className="gap-1.5">
                             <Label className="font-medium text-ink">อีเมลพนักงาน</Label>
-                            <Input placeholder="เช่น requester.sales" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            <Input name="username" autoComplete="username" autoFocus placeholder="เช่น requester.sales" value={email} onChange={(e) => setEmail(e.target.value)} />
                         </TextField>
                         <TextField className="gap-1.5">
                             <Label className="font-medium text-ink">รหัสผ่าน</Label>
-                            <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && login()} />
+                            <Input name="password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
                         </TextField>
                         <div className="flex items-center gap-2 text-sm text-ink">
                             <Checkbox id="remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
                             <label htmlFor="remember" className="cursor-pointer">จดจำการเข้าสู่ระบบ</label>
                         </div>
-                        {error && <p className="text-sm text-red-600">{error}</p>}
-                        <Button className="w-full" onPress={login}>เข้าสู่ระบบ</Button>
-                    </div>
+                        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+                        <Button className="w-full" type="submit">เข้าสู่ระบบ</Button>
+                    </form>
 
                     {/* ทางลัดสำหรับทดลอง */}
                     <div className="rounded-2xl bg-white p-5 ring-1 ring-line">
@@ -101,7 +104,7 @@ export default function Page() {
                         <ul className="flex flex-col gap-1">
                             {demos.map((u) => (
                                 <li key={u.id}>
-                                    <button onClick={() => { const found = store.login(u.email, remember); if (found) go(found); }}
+                                    <button type="button" onClick={() => { const found = store.login(u.email, remember); if (found) go(found); }}
                                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-page">
                                         <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-strong">{u.name.slice(0, 1)}</span>
                                         <span className="flex-1"><span className="font-medium text-ink">{nick(u.name)}</span><span className="text-xs text-ink-3"> · {u.dept}</span></span>

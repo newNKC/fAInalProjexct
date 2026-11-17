@@ -9,6 +9,7 @@ import PageHeader from "@/components/page-header";
 import { Card, RequestSummary } from "@/components/request-parts";
 import { fieldClass } from "@/components/request-form";
 import { NoAccess } from "@/components/role-shell";
+import { useLeaveGuard } from "@/components/use-leave-guard";
 import { isLeafTask, nick, todayISO } from "@/data/requests";
 import { useStore, type PlanDraft } from "@/data/store";
 import { cn } from "@/utils/cn";
@@ -25,6 +26,8 @@ export default function Page() {
     const [plan, setPlan] = useState<PlanDraft>([{ title: "", subs: [emptySub()] }]);
     const [teamId, setTeamId] = useState<number | null>(null);
     const [error, setError] = useState("");
+    const [done, setDone] = useState(false);
+    useLeaveGuard(!done && plan.some((m) => m.title.trim() || m.subs.some((s) => s.title.trim() || s.assigneeId)));
 
     if (!r || r.targetDept !== user.dept || r.status !== "pending_target") return <NoAccess text="คำขอนี้ไม่ได้รอแผนกของคุณรับงาน" />;
 
@@ -50,6 +53,7 @@ export default function Page() {
             if (m.subs.length === 0) return setError(`งานหลัก “${m.title}” ต้องมีงานย่อยอย่างน้อย 1 งาน`);
             if (m.subs.some((s) => !s.title.trim() || !s.assigneeId || !s.dueDate)) return setError(`งานย่อยใน “${m.title}” ต้องมีชื่องาน ผู้รับผิดชอบ และวันที่ให้ครบ`);
         }
+        setDone(true);
         store.acceptWithPlan(r.id, clean.map((m) => ({ title: m.title.trim(), subs: m.subs.map((s) => ({ ...s, title: s.title.trim() })) })), teamId);
         store.showToast(`รับงาน ${r.code} แล้ว · มอบหมาย ${clean.flatMap((m) => m.subs).length} งานย่อย`);
         router.push("/incoming");

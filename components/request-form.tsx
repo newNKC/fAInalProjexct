@@ -2,7 +2,8 @@
 
 // แบบฟอร์มคำขอ (ตาม Figma "ส่งคำขอใหม่") · ใช้ทั้งสร้างใหม่และแก้ไขคำขอที่ถูกส่งกลับ
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { useLeaveGuard } from "@/components/use-leave-guard";
 import { InfoCircle, Paperclip2, Send1, UploadCloud, Xmark } from "@tailgrids/icons";
 import { Button, buttonStyles } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
@@ -37,8 +38,13 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
     });
     const [talked, setTalked] = useState(!!initial);
     const [dragging, setDragging] = useState(false);
-    const [error, setError] = useState("");
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [fileError, setFileError] = useState("");
+    const [submitted, setSubmitted] = useState(false);
+
+    // กรอกค้างไว้แล้วจะปิดแท็บ/รีเฟรช → เบราว์เซอร์ถามก่อน
+    const dirty = !submitted && JSON.stringify(draft) !== JSON.stringify(initial ?? { title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: "แผนก IT", dueDate: "", attachments: [] });
+    useLeaveGuard(dirty);
 
     const set = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
@@ -56,13 +62,26 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
         setDraft((d) => ({ ...d, attachments: [...d.attachments, ...ok.filter((a) => !d.attachments.some((x) => x.name === a.name))] }));
     }
 
-    const submit = () => {
-        if (!draft.title.trim() || !draft.detail.trim() || !draft.dueDate) return setError("กรุณากรอกช่องที่มี * ให้ครบ");
-        if (draft.dueDate < today) return setError("วันที่ต้องการต้องไม่ใช่วันที่ผ่านมาแล้ว");
-        if (!talked) return setError("กรุณายืนยันว่าได้คุยรายละเอียดกับหัวหน้าต้นสังกัดแล้ว");
-        setError("");
+    // ตรวจทุกช่องพร้อมกัน แสดงข้อความใต้ช่องที่ผิด แล้วเลื่อนไปช่องแรกที่ผิด
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        const err: Record<string, string> = {};
+        if (!draft.title.trim()) err.title = "กรุณากรอกหัวข้อ";
+        if (!draft.dueDate) err.dueDate = "กรุณาเลือกวันที่ต้องการ";
+        else if (draft.dueDate < today) err.dueDate = "วันที่ต้องการต้องไม่ใช่วันที่ผ่านมาแล้ว";
+        if (!draft.detail.trim()) err.detail = "กรุณากรอกรายละเอียด";
+        if (!talked) err.talked = "กรุณายืนยันว่าได้คุยรายละเอียดกับหัวหน้าต้นสังกัดแล้ว";
+        setErrors(err);
+        const first = Object.keys(err)[0];
+        if (first) {
+            document.getElementById(`f-${first}`)?.focus();
+            return;
+        }
+        setSubmitted(true);
         onSubmit({ ...draft, title: draft.title.trim(), detail: draft.detail.trim() });
     }
+    const errText = (k: string) => errors[k] && <span id={`e-${k}`} className="text-xs font-normal text-red-600">{errors[k]}</span>
+    const bad = (k: string) => errors[k] ? { "aria-invalid": true, "aria-describedby": `e-${k}` } : {}
 
     const approver = findApprover(store.users, user.dept);
     const head = findHead(store.users, draft.targetDept);
@@ -80,10 +99,12 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
 
     return (
         <div className="grid grid-cols-[1fr_20rem] items-start gap-6">
+            <form onSubmit={submit} noValidate>
             <Card title="รายละเอียดคำขอ" hint="ช่องที่มี * ต้องกรอก">
                 <div className="grid grid-cols-2 gap-4">
                     <label className="col-span-2 flex flex-col gap-1.5 text-sm font-medium text-ink">หัวข้อ *
-                        <Input aria-label="หัวข้อ" placeholder="เช่น เพิ่มตัวกรองลูกค้าในระบบ CRM" value={draft.title} onChange={(e) => set("title", e.target.value)} />
+                        <Input id="f-title" {...bad("title")} required maxLength={150} aria-label="หัวข้อ" placeholder="เช่น เพิ่มตัวกรองลูกค้าในระบบ CRM" value={draft.title} onChange={(e) => set("title", e.target.value)} />
+                        {errText("title")}
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">หมวด
                         <select aria-label="หมวด" className={fieldClass} value={draft.categoryId} onChange={(e) => set("categoryId", Number(e.target.value))}>
@@ -96,14 +117,16 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                         </select>
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">วันที่ต้องการ *
-                        <input aria-label="วันที่ต้องการ" type="date" min={today} className={fieldClass} value={draft.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+                        <input id="f-dueDate" {...bad("dueDate")} required aria-label="วันที่ต้องการ" type="date" min={today} className={cn(fieldClass, errors.dueDate && "border-red-500")} value={draft.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+                        {errText("dueDate")}
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">ผู้ขอ
                         <input aria-label="ผู้ขอ" readOnly className={cn(fieldClass, "bg-page text-ink-2")} value={`${user.name} · ${user.dept}`} />
                     </label>
                     <label className="col-span-2 flex flex-col gap-1.5 text-sm font-medium text-ink">รายละเอียด *
-                        <textarea aria-label="รายละเอียด" rows={5} className={fieldClass} placeholder="อธิบายปัญหาหรือสิ่งที่ต้องการ ใครใช้ ใช้ทำอะไร"
+                        <textarea id="f-detail" {...bad("detail")} required aria-label="รายละเอียด" rows={5} className={cn(fieldClass, errors.detail && "border-red-500")} placeholder="อธิบายปัญหาหรือสิ่งที่ต้องการ ใครใช้ ใช้ทำอะไร"
                             value={draft.detail} onChange={(e) => set("detail", e.target.value)} />
+                        {errText("detail")}
                     </label>
                 </div>
 
@@ -127,7 +150,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                         {draft.attachments.map((a) => (
                             <li key={a.name} className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-sm ring-1 ring-line">
                                 <Paperclip2 className="size-4 text-ink-3" />{a.name}<span className="text-xs text-ink-3">{fmtSize(a.size)}</span>
-                                <button aria-label={`ลบ ${a.name}`} onClick={() => set("attachments", draft.attachments.filter((x) => x.name !== a.name))}><Xmark className="size-4 text-ink-3 hover:text-red-600" /></button>
+                                <button type="button" aria-label={`ลบ ${a.name}`} onClick={() => set("attachments", draft.attachments.filter((x) => x.name !== a.name))}><Xmark className="size-4 text-ink-3 hover:text-red-600" /></button>
                             </li>
                         ))}
                     </ul>
@@ -135,16 +158,17 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
 
                 <div className="mt-5 flex items-center gap-2.5 text-sm text-ink">
                     <Checkbox id="talked" checked={talked} onChange={(e) => setTalked(e.target.checked)} />
-                    <label htmlFor="talked" className="cursor-pointer">ได้คุยรายละเอียดคำขอนี้กับหัวหน้าต้นสังกัดแล้ว</label>
+                    <label htmlFor="talked" className="cursor-pointer">ได้คุยรายละเอียดคำขอนี้กับหัวหน้าต้นสังกัดแล้ว *</label>
                 </div>
-
-                {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+                <span id="f-talked" tabIndex={-1}>{errText("talked")}</span>
+                {Object.keys(errors).length > 0 && <p role="alert" className="mt-3 text-sm text-red-600">กรอกข้อมูลไม่ครบ {Object.keys(errors).length} ช่อง · ดูข้อความสีแดงใต้ช่อง</p>}
 
                 <div className="mt-5 flex justify-end gap-3">
                     <Link href={cancelHref} className={buttonStyles({ appearance: "outline", size: "sm" })}>ยกเลิก</Link>
-                    <Button size="sm" onPress={submit}><Send1 />{submitLabel}</Button>
+                    <Button size="sm" type="submit"><Send1 />{submitLabel}</Button>
                 </div>
             </Card>
+            </form>
 
             <div className="flex flex-col gap-4">
                 <Card title="หลังส่งคำขอจะเกิดอะไรขึ้น">

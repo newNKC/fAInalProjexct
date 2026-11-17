@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { InfoCircle, Pencil1, Plus, Trash1 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import Banner from "@/components/banner";
+import ConfirmDialog from "@/components/confirm-dialog";
 import CategoryBadge from "@/components/category-badge";
 import PageHeader from "@/components/page-header";
 import { Card } from "@/components/request-parts";
@@ -24,6 +25,7 @@ export default function Page() {
     const store = useStore();
     const [draft, setDraft] = useState<Draft>(blank);
     const [sort, setSort] = useState("name");
+    const [toDelete, setToDelete] = useState<Category | null>(null);
     const used = (c: Category) => store.requests.filter((r) => r.categoryId === c.id).length;
 
     const options: SortOption<Category>[] = [
@@ -33,7 +35,8 @@ export default function Page() {
         { key: "id", label: "สร้างก่อน", value: (c) => c.id },
     ];
 
-    const save = () => {
+    const save = (e?: FormEvent) => {
+        e?.preventDefault();
         if (!draft.name.trim()) return;
         const dup = store.categories.some((c) => c.name === draft.name.trim() && c.id !== draft.id);
         if (dup) return store.showToast(`มีหมวด “${draft.name.trim()}” อยู่แล้ว`);
@@ -60,7 +63,7 @@ export default function Page() {
                                 </label>
                                 <button aria-label={`แก้ไขหมวด ${c.name}`} onClick={() => setDraft({ ...c })}><Pencil1 className="size-4 text-ink-3 hover:text-brand" /></button>
                                 <button aria-label={`ลบหมวด ${c.name}`} disabled={used(c) > 0} title={used(c) > 0 ? "มีคำขอใช้หมวดนี้อยู่ ลบไม่ได้ (ปิดใช้งานแทน)" : "ลบหมวด"}
-                                    onClick={() => { store.removeCategory(c.id); store.showToast(`ลบหมวด “${c.name}” แล้ว`); }}
+                                    onClick={() => setToDelete(c)}
                                     className="disabled:cursor-not-allowed disabled:opacity-30"><Trash1 className="size-4 text-ink-3 hover:text-red-600" /></button>
                             </li>
                         ))}
@@ -69,7 +72,7 @@ export default function Page() {
                 </Card>
 
                 <Card title={draft.id ? "แก้ไขหมวด" : "เพิ่มหมวดใหม่"}>
-                    <div className="flex flex-col gap-3">
+                    <form onSubmit={save} className="flex flex-col gap-3">
                         <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">ชื่อหมวด *
                             <Input aria-label="ชื่อหมวด" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="เช่น ขอข้อมูล / รายงาน" />
                         </label>
@@ -79,7 +82,7 @@ export default function Page() {
                         <div className="flex flex-col gap-1.5 text-sm font-medium text-ink">สีป้าย
                             <div className="flex flex-wrap gap-2">
                                 {COLORS.map((c) => (
-                                    <button key={c} aria-label={`สี ${c}`} onClick={() => setDraft((d) => ({ ...d, color: c }))}
+                                    <button type="button" key={c} aria-label={`สี ${c}`} onClick={() => setDraft((d) => ({ ...d, color: c }))}
                                         className={cn("size-7 rounded-full ring-offset-2", draft.color === c && "ring-2 ring-ink")} style={{ background: c }} />
                                 ))}
                             </div>
@@ -89,12 +92,18 @@ export default function Page() {
                             <Checkbox checked={draft.active} onChange={(e) => setDraft((d) => ({ ...d, active: e.target.checked }))} />เปิดใช้งานทันที
                         </label>
                         <div className="flex gap-2">
-                            {draft.id && <Button size="sm" appearance="outline" onPress={() => setDraft(blank)}>ยกเลิก</Button>}
-                            <Button size="sm" className="flex-1" disabled={!draft.name.trim()} onPress={save}>{draft.id ? "บันทึก" : <><Plus />เพิ่มหมวด</>}</Button>
+                            {draft.id && <Button size="sm" type="button" appearance="outline" onPress={() => setDraft(blank)}>ยกเลิก</Button>}
+                            <Button size="sm" type="submit" className="flex-1" disabled={!draft.name.trim()}>{draft.id ? "บันทึก" : <><Plus />เพิ่มหมวด</>}</Button>
                         </div>
-                    </div>
+                    </form>
                 </Card>
             </div>
+
+            <ConfirmDialog open={!!toDelete} title={`ลบหมวด “${toDelete?.name}”?`} confirmLabel="ลบหมวด" danger
+                onClose={() => setToDelete(null)}
+                onConfirm={() => { if (toDelete) { store.removeCategory(toDelete.id); store.showToast(`ลบหมวด “${toDelete.name}” แล้ว`); } setToDelete(null); }}>
+                ลบแล้วกู้คืนไม่ได้ · หมวดนี้ยังไม่มีคำขอใช้งาน
+            </ConfirmDialog>
         </>
     )
 }

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { CheckCircle1, InfoCircle, Reply, Shield1Check } from "@tailgrids/icons";
 import { Button, buttonStyles } from "@/components/tailgrids/core/button";
 import Banner from "@/components/banner";
+import ConfirmDialog from "@/components/confirm-dialog";
 import PageHeader from "@/components/page-header";
 import ReasonDialog from "@/components/reason-dialog";
 import { MainTasks, RequestHistory, RequestInfo, RequestStepper, RequestSummary, TaskTree } from "@/components/request-parts";
@@ -20,6 +21,7 @@ export default function Page() {
     const router = useRouter();
     const user = store.user!;
     const [fixOpen, setFixOpen] = useState(false);
+    const [acceptOpen, setAcceptOpen] = useState(false);
 
     const r = store.requests.find((x) => x.id === Number(id));
     if (!r) return <NoAccess text="ไม่พบคำขอนี้" />;
@@ -50,7 +52,7 @@ export default function Page() {
                     <Banner tone="success" icon={<CheckCircle1 />} action={
                         <div className="flex gap-2">
                             <Button size="sm" appearance="outline" onPress={() => setFixOpen(true)}>ขอให้แก้ไข</Button>
-                            <Button size="sm" variant="success" onPress={() => { store.confirmDone(r.id); store.showToast(`ตรวจรับงาน ${r.code} แล้ว · ปิดคำขอเรียบร้อย`); }}>
+                            <Button size="sm" variant="success" onPress={() => setAcceptOpen(true)}>
                                 <CheckCircle1 />ตรวจรับงาน
                             </Button>
                         </div>
@@ -85,6 +87,12 @@ export default function Page() {
                     <RequestHistory r={r} />
                 </div>
             </div>
+
+            <ConfirmDialog open={acceptOpen} title={`ตรวจรับงาน ${r.code}?`} confirmLabel="ตรวจรับและปิดคำขอ"
+                onClose={() => setAcceptOpen(false)}
+                onConfirm={() => { store.confirmDone(r.id); setAcceptOpen(false); store.showToast(`ตรวจรับงาน ${r.code} แล้ว · ปิดคำขอเรียบร้อย`); }}>
+                ยืนยันว่างานตรงกับที่ขอ · ปิดคำขอแล้วจะแก้ไขต่อไม่ได้ ถ้ายังไม่ตรงให้กด “ขอให้แก้ไข” แทน
+            </ConfirmDialog>
 
             <ReasonDialog open={fixOpen} onClose={() => setFixOpen(false)} title={`ขอให้แก้ไขงาน ${r.code}`} confirmLabel="ส่งกลับให้แผนกปลายทางแก้"
                 onConfirm={(reason) => { store.requestFix(r.id, reason); setFixOpen(false); store.showToast(`ส่ง ${r.code} กลับให้${r.targetDept}แก้ไขแล้ว`); router.refresh(); }} />

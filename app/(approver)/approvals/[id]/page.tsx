@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle1, InfoCircle, Reply } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
@@ -34,7 +34,9 @@ export default function Page() {
         store.showToast(`อนุมัติ ${r.code} แล้ว · ส่งต่อให้หัวหน้า${r.targetDept}`);
         router.push("/approvals");
     }
-    const sendBack = () => {
+    const sendBack = (e?: FormEvent) => {
+        e?.preventDefault();
+        if (!reason.trim()) return;
         store.returnRequest(r.id, reason.trim());
         store.showToast(`ส่ง ${r.code} กลับให้ ${nick(store.userById(r.requesterId)?.name)} แก้ไขแล้ว`);
         router.push("/approvals");
@@ -68,17 +70,17 @@ export default function Page() {
                                 </div>
                             </>
                         ) : (
-                            <>
-                                <button onClick={() => setMode("review")} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-2 hover:text-brand"><ArrowLeft className="size-4" />กลับไปพิจารณา</button>
+                            <form onSubmit={sendBack}>
+                                <button type="button" onClick={() => setMode("review")} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-2 hover:text-brand"><ArrowLeft className="size-4" />กลับไปพิจารณา</button>
                                 <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">เหตุผลที่ส่งกลับ *
-                                    <textarea aria-label="เหตุผลที่ส่งกลับ" rows={4} className={fieldClass} value={reason} onChange={(e) => setReason(e.target.value)}
+                                    <textarea autoFocus required aria-label="เหตุผลที่ส่งกลับ" rows={4} className={fieldClass} value={reason} onChange={(e) => setReason(e.target.value)}
                                         placeholder="บอกผู้ขอว่าต้องแก้หรือเพิ่มอะไร" />
                                 </label>
                                 <div className="mt-4 flex justify-end gap-2">
-                                    <Button size="sm" appearance="outline" onPress={() => { setMode("review"); setReason(""); }}>ยกเลิก</Button>
-                                    <Button size="sm" variant="danger" disabled={!reason.trim()} onPress={sendBack}>ยืนยันส่งกลับ</Button>
+                                    <Button size="sm" type="button" appearance="outline" onPress={() => { setMode("review"); setReason(""); }}>ยกเลิก</Button>
+                                    <Button size="sm" type="submit" variant="danger" disabled={!reason.trim()}>ยืนยันส่งกลับ</Button>
                                 </div>
-                            </>
+                            </form>
                         )}
                     </Card>
                     <Banner tone="info" icon={<InfoCircle />}>อนุมัติแล้วคำขอไปที่หัวหน้า{r.targetDept} ({head ? nick(head.name) : "-"})</Banner>

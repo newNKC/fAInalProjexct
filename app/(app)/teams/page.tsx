@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { InfoCircle, Plus, Trash1, Xmark } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import Banner from "@/components/banner";
+import ConfirmDialog from "@/components/confirm-dialog";
 import PageHeader from "@/components/page-header";
 import { Card } from "@/components/request-parts";
 import { fieldClass } from "@/components/request-form";
@@ -30,6 +31,7 @@ function Teams() {
     const [dept, setDept] = useState(user.dept);
     const [leadId, setLeadId] = useState(0);
     const [adding, setAdding] = useState<Record<number, number>>({});
+    const [confirm, setConfirm] = useState<{ title: string, body: string, label: string, run: () => void } | null>(null);
 
     const teams = store.teams.filter((t) => isAdmin || t.dept === user.dept);
     const staff = (d: string) => store.users.filter((u) => u.dept === d);
@@ -43,7 +45,8 @@ function Teams() {
         { key: "lead", label: "หัวหน้าทีม", value: (t) => nick(store.userById(t.leadId)?.name) },
     ];
 
-    const create = () => {
+    const create = (e: FormEvent) => {
+        e.preventDefault();
         if (!name.trim() || !leadId) return;
         store.saveTeam({ name: name.trim(), dept, leadId, memberIds: [leadId] });
         store.showToast(`สร้างทีม “${name.trim()}” แล้ว`);
@@ -74,7 +77,11 @@ function Teams() {
                             const candidates = staff(t.dept).filter((u) => !t.memberIds.includes(u.id));
                             return (
                                 <Card key={t.id} title={t.name} hint={`${t.dept} · หัวหน้าทีม: ${nick(store.userById(t.leadId)?.name)} · ใช้กับ ${usedBy(t)} คำขอ`}
-                                    action={<button aria-label={`ลบทีม ${t.name}`} onClick={() => { store.removeTeam(t.id); store.showToast(`ลบทีม “${t.name}” แล้ว`); }}><Trash1 className="size-4 text-ink-3 hover:text-red-600" /></button>}>
+                                    action={<button aria-label={`ลบทีม ${t.name}`} onClick={() => setConfirm({
+                                        title: `ลบทีม “${t.name}”?`, label: "ลบทีม",
+                                        body: usedBy(t) ? `คำขอ ${usedBy(t)} รายการที่ผูกกับทีมนี้จะกลายเป็น "ไม่ระบุทีม"` : "ลบแล้วกู้คืนไม่ได้",
+                                        run: () => { store.removeTeam(t.id); store.showToast(`ลบทีม “${t.name}” แล้ว`); },
+                                    })}><Trash1 className="size-4 text-ink-3 hover:text-red-600" /></button>}>
                                     <ul className="flex flex-col gap-2">
                                         {t.memberIds.map((uid) => {
                                             const u = store.userById(uid);
@@ -85,7 +92,10 @@ function Teams() {
                                                     {uid === t.leadId && <span className="rounded-md bg-[#FEF3C7] px-1.5 text-[11px] font-semibold text-[#92400E]">หัวหน้าทีม</span>}
                                                     {teamCount(uid) > 1 && <span className="rounded-md bg-page px-1.5 text-[11px] text-ink-2">อยู่ {teamCount(uid)} ทีม</span>}
                                                     {uid !== t.leadId && (
-                                                        <button aria-label={`เอา ${nick(u?.name)} ออกจากทีม`} onClick={() => store.saveTeam({ ...t, memberIds: t.memberIds.filter((x) => x !== uid) })}>
+                                                        <button aria-label={`เอา ${nick(u?.name)} ออกจากทีม`} onClick={() => setConfirm({
+                                                            title: `เอา ${nick(u?.name)} ออกจาก${t.name}?`, label: "เอาออก", body: "เพิ่มกลับเข้าทีมได้ภายหลัง",
+                                                            run: () => { store.saveTeam({ ...t, memberIds: t.memberIds.filter((x) => x !== uid) }); store.showToast(`เอา ${nick(u?.name)} ออกจาก${t.name}แล้ว`); },
+                                                        })}>
                                                             <Xmark className="size-4 text-ink-3 hover:text-red-600" />
                                                         </button>
                                                     )}
@@ -112,7 +122,7 @@ function Teams() {
                 </div>
 
                 <Card title="สร้างทีมใหม่">
-                    <div className="flex flex-col gap-3">
+                    <form onSubmit={create} className="flex flex-col gap-3">
                         <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">ชื่อทีม *
                             <Input aria-label="ชื่อทีม" value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น ทีมรายงาน" />
                         </label>
@@ -129,10 +139,15 @@ function Teams() {
                                 {staff(dept).map((u) => <option key={u.id} value={u.id}>{nick(u.name)} · {u.position}</option>)}
                             </select>
                         </label>
-                        <Button size="sm" disabled={!name.trim() || !leadId} onPress={create}><Plus />สร้างทีมใหม่</Button>
-                    </div>
+                        <Button size="sm" type="submit" disabled={!name.trim() || !leadId}><Plus />สร้างทีมใหม่</Button>
+                    </form>
                 </Card>
             </div>
+
+            <ConfirmDialog open={!!confirm} title={confirm?.title ?? ""} confirmLabel={confirm?.label ?? ""} danger
+                onClose={() => setConfirm(null)} onConfirm={() => { confirm?.run(); setConfirm(null); }}>
+                {confirm?.body}
+            </ConfirmDialog>
         </>
     )
 }
