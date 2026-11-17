@@ -4,6 +4,7 @@ import { useState } from "react";
 import FilterChips from "@/components/filter-chips";
 import PageHeader from "@/components/page-header";
 import RequestTable from "@/components/request-table";
+import { canApprove } from "@/data/requests";
 import { useStore } from "@/data/store";
 
 type Tab = "waiting" | "decided"
@@ -12,10 +13,10 @@ export default function Page() {
     const store = useStore();
     const [tab, setTab] = useState<Tab>("waiting");
 
-    // คำขอที่ฉันเป็นผู้อนุมัติ
-    const mine = store.requests.filter((r) => r.approverId === store.user?.id);
-    const waiting = mine.filter((r) => r.status === "pending_approval");
-    const decided = mine.filter((r) => r.status !== "pending_approval");
+    // รออนุมัติ = คำขอของคนในแผนกฉันที่ยังไม่มีใครพิจารณา · พิจารณาแล้ว = คำขอที่ฉันเป็นคนอนุมัติ/ส่งกลับ
+    const me = store.user;
+    const waiting = me ? store.requests.filter((r) => canApprove(store.users, me, r)) : [];
+    const decided = store.requests.filter((r) => r.approverId === me?.id && r.status !== "pending_approval");
 
     return (
         <>

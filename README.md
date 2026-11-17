@@ -13,21 +13,23 @@ npm run dev
 
 ## บัญชีทดลอง
 
+อีเมลตั้งเป็น `โรลหลัก.แผนก` (sales = ฝ่ายขาย, it = แผนก IT, mgmt = ฝ่ายบริหาร) พิมพ์แค่ส่วนหน้า `@` ก็ได้
+
 | อีเมล | ชื่อ | โรล | หน้าแรก |
 | --- | --- | --- | --- |
-| orawan.s@company.local | แอน | ผู้ขอ | /requests |
-| ekkachai@company.local | เอก | ผู้ขอ | /requests |
-| somsak.j@company.local | สมศักดิ์ | หัวหน้าต้นสังกัด + ผู้ขอ | /approvals |
-| wichai.t@company.local | วิชัย | หัวหน้าแผนกปลายทาง + หัวหน้าต้นสังกัด | /incoming |
-| thanakorn@company.local | ต้น | ผู้รับงาน + ผู้ขอ | /tasks |
-| ploy@company.local | พลอย | ผู้รับงาน | /tasks |
-| keng@company.local | เก่ง | ผู้รับงาน | /tasks |
-| praphaporn@company.local | ประภาพร | ผู้บริหาร | /dashboard |
-| nida@company.local | นิด | ผู้ดูแลระบบ | /admin/dashboard |
+| requester.sales | แอน | ผู้ขอ | /requests |
+| requester2.sales | เอก | ผู้ขอ | /requests |
+| approver.sales | สมศักดิ์ | หัวหน้าต้นสังกัด + ผู้ขอ | /approvals |
+| head.it | วิชัย | หัวหน้าแผนกปลายทาง + หัวหน้าต้นสังกัด | /incoming |
+| assignee.it | ต้น | ผู้รับงาน + ผู้ขอ | /tasks |
+| assignee2.it | พลอย | ผู้รับงาน | /tasks |
+| assignee3.it | เก่ง | ผู้รับงาน | /tasks |
+| executive.mgmt | ประภาพร | ผู้บริหาร | /dashboard |
+| admin.it | นิด | ผู้ดูแลระบบ | /admin/dashboard |
 
 คนที่มีหลายโรลสลับโรลได้จากแถบ "สลับโรล" ด้านบนของหน้า
 
-ถ้าอยากล้างข้อมูลกลับเป็นค่าเริ่มต้น: เปิด DevTools → Application → Local Storage → ลบ `rq-data-v1`
+ถ้าอยากล้างข้อมูลกลับเป็นค่าเริ่มต้น: เปิด DevTools → Application → Local Storage → ลบ `rq-data-v2`
 
 ## โครงสร้างไฟล์
 

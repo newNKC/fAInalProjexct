@@ -61,6 +61,14 @@ export type Log = {
 export const findApprover = (users: User[], requester: User) =>
     users.find((u) => u.dept === requester.dept && u.id !== requester.id && u.roles.includes("approver")) ?? null
 
+// คนนี้พิจารณาคำขอนี้ได้ไหม: เป็นหัวหน้าต้นสังกัด (approver) แผนกเดียวกับผู้ขอ และไม่ใช่คำขอของตัวเอง
+// เช็กจากโรลปัจจุบันทุกครั้ง ไม่ได้ล็อกผู้อนุมัติไว้ตอนส่ง → คนที่เพิ่งได้โรล approver เห็นคำขอที่รออยู่ทันที
+export const canApprove = (users: User[], user: User, r: Request) => {
+    const requester = users.find((u) => u.id === r.requesterId);
+    return r.status === "pending_approval" && user.roles.includes("approver")
+        && !!requester && requester.dept === user.dept && requester.id !== user.id
+}
+
 // หัวหน้าแผนก = คนในแผนกที่มีโรล head
 export const findHead = (users: User[], dept: string) =>
     users.find((u) => u.dept === dept && u.roles.includes("head")) ?? null
@@ -115,7 +123,7 @@ const at = (day: number, hour = 9) => `2026-11-${String(day).padStart(2, "0")}T$
 
 export const seedRequests: Request[] = [
     { id: 1, code: "REQ-2026-0001", title: "เพิ่มรายงานยอดขายรายเดือนในระบบ CRM", detail: "ฝ่ายขายต้องการรายงานยอดขายแยกตามพนักงานและเดือน ส่งออกเป็น Excel ได้", categoryId: 2, targetDept: "แผนก IT", dueDate: "2026-12-10", requesterId: 1, approverId: 3, status: "in_progress", attachments: [{ name: "ตัวอย่างรายงาน.xlsx", size: 24576 }], createdAt: at(2) },
-    { id: 2, code: "REQ-2026-0002", title: "แก้บั๊กพิมพ์ใบเสนอราคาแล้วตัวหนังสือไทยเพี้ยน", detail: "กดพิมพ์ใบเสนอราคาเป็น PDF แล้วสระลอย ตัวอักษรซ้อนกัน", categoryId: 1, targetDept: "แผนก IT", dueDate: "2026-11-25", requesterId: 2, approverId: 3, status: "pending_approval", attachments: [{ name: "ภาพหน้าจอ.png", size: 182400 }], createdAt: at(16, 14) },
+    { id: 2, code: "REQ-2026-0002", title: "แก้บั๊กพิมพ์ใบเสนอราคาแล้วตัวหนังสือไทยเพี้ยน", detail: "กดพิมพ์ใบเสนอราคาเป็น PDF แล้วสระลอย ตัวอักษรซ้อนกัน", categoryId: 1, targetDept: "แผนก IT", dueDate: "2026-11-25", requesterId: 2, approverId: null, status: "pending_approval", attachments: [{ name: "ภาพหน้าจอ.png", size: 182400 }], createdAt: at(16, 14) },
     { id: 3, code: "REQ-2026-0003", title: "ขอสิทธิ์ส่งออกข้อมูลลูกค้าจาก CRM", detail: "ต้องการส่งออกรายชื่อลูกค้าเพื่อทำแคมเปญสิ้นปี", categoryId: 3, targetDept: "แผนก IT", dueDate: "2026-11-16", requesterId: 1, approverId: 3, status: "pending_target", attachments: [], createdAt: at(12) },
     { id: 4, code: "REQ-2026-0004", title: "เพิ่มช่องส่วนลดพิเศษในใบเสนอราคา", detail: "ต้องการกรอกส่วนลดเป็นเปอร์เซ็นต์ได้", categoryId: 4, targetDept: "แผนก IT", dueDate: "2026-12-20", requesterId: 2, approverId: 3, status: "returned", attachments: [], createdAt: at(10) },
     { id: 5, code: "REQ-2026-0005", title: "ปรับหน้าค้นหาลูกค้าให้ค้นด้วยเบอร์โทรได้", detail: "ตอนนี้ค้นได้แค่ชื่อ อยากค้นด้วยเบอร์โทรด้วย", categoryId: 4, targetDept: "แผนก IT", dueDate: "2026-11-20", requesterId: 1, approverId: 3, status: "pending_acceptance", attachments: [], createdAt: at(3) },

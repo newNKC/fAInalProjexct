@@ -59,7 +59,7 @@ export default function Page() {
                 {/* email */}
                 <TextField className="gap-1.5">
                     <Label className="font-medium text-ink">อีเมลพนักงาน</Label>
-                    <Input placeholder="orawan.s@company.local" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input placeholder="เช่น requester.sales" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </TextField>
 
                 {/* password */}

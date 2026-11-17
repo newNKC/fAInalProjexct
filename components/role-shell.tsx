@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import Sidebar, { type MenuItem } from "@/components/sidebar";
 import RoleBadge from "@/components/role-badge";
-import { roleHome } from "@/data/requests";
+import { canApprove, roleHome } from "@/data/requests";
 import { useStore } from "@/data/store";
 import { allRoles, type Role } from "@/data/users";
 import { cn } from "@/utils/cn";
@@ -56,7 +56,7 @@ export default function RoleShell({ role, menu, children }: { role: Role, menu: 
     // จำนวนงานที่รออยู่ แสดงเป็นตัวเลขบนเมนู
     const counts: Record<string, number> = {
         "/requests": store.requests.filter((r) => r.requesterId === user.id && ["returned", "pending_acceptance"].includes(r.status)).length,
-        "/approvals": store.requests.filter((r) => r.approverId === user.id && r.status === "pending_approval").length,
+        "/approvals": store.requests.filter((r) => canApprove(store.users, user, r)).length,
         "/incoming": store.requests.filter((r) => r.targetDept === user.dept && r.status === "pending_target").length,
         "/tasks": store.tasks.filter((t) => t.assigneeId === user.id && t.progress < 100 && !store.tasks.some((s) => s.parentId === t.id)
             && store.requests.find((r) => r.id === t.requestId)?.status === "in_progress").length,

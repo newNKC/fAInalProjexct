@@ -41,7 +41,7 @@ export type RequestDraft = {
     attachments: Attachment[]
 }
 
-const DATA_KEY = "rq-data-v1";
+const DATA_KEY = "rq-data-v2";   // เปลี่ยนเลขเวอร์ชันเมื่อข้อมูลตัวอย่างเปลี่ยน → เบราว์เซอร์โหลดค่าเริ่มต้นใหม่
 const SESSION_KEY = "rq-session-v1";
 
 const seed = (): Data => ({
@@ -83,12 +83,26 @@ function useStoreValue() {
         try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch { }
     }, [data, ready]);
 
+    // เปิดหลายแท็บพร้อมกัน: แท็บอื่นแก้ข้อมูล → อัปเดตแท็บนี้ตาม (ไม่งั้นแท็บเก่าจะเขียนทับด้วยข้อมูลเก่า)
+    useEffect(() => {
+        const onStorage = (e: StorageEvent) => {
+            if (e.key === DATA_KEY && e.newValue) {
+                try { setData(JSON.parse(e.newValue)); } catch { }
+            }
+        };
+        window.addEventListener("storage", onStorage);
+        return () => window.removeEventListener("storage", onStorage);
+    }, []);
+
     const user = session ? data.users.find((u) => u.id === session.userId) ?? null : null;
     const userById = (id: number | null) => data.users.find((u) => u.id === id);
 
     // ---------- เข้า / ออกจากระบบ ----------
     const login = (email: string, remember: boolean): User | null => {
-        const found = data.users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+        // พิมพ์แค่ "requester.sales" ก็ได้ ระบบเติม @company.local ให้
+        const typed = email.trim().toLowerCase();
+        const full = typed.includes("@") ? typed : `${typed}@company.local`;
+        const found = data.users.find((u) => u.email.toLowerCase() === full);
         if (!found || found.roles.length === 0) return null;
         const s = { userId: found.id, role: found.roles[0] };
         setSession(s);
@@ -133,7 +147,7 @@ function useStoreValue() {
             id,
             code: `REQ-${new Date().getFullYear()}-${String(id).padStart(4, "0")}`,
             requesterId: user.id,
-            approverId: approver?.id ?? null,
+            approverId: null,                 // ใส่ตอนมีคนอนุมัติ / ส่งกลับจริง
             // ไม่มีหัวหน้าต้นสังกัด (ผู้ขอเป็นหัวหน้าเอง) → ข้ามขั้นอนุมัติ
             status: approver ? "pending_approval" : "pending_target",
             createdAt: now(),
@@ -161,8 +175,11 @@ function useStoreValue() {
     const requestFix = (id: number, reason: string) => setData((d) => changeStatus(d, id, "in_progress", "ขอให้แก้ไขงาน", reason));
 
     // ---------- หัวหน้าต้นสังกัด ----------
-    const approve = (id: number) => setData((d) => changeStatus(d, id, "pending_target", "อนุมัติ"));
-    const returnRequest = (id: number, reason: string) => setData((d) => changeStatus(d, id, "returned", "ส่งกลับ", reason));
+    // บันทึกว่าใครเป็นผู้อนุมัติจริง
+    const withApprover = (d: Data, id: number): Data =>
+        ({ ...d, requests: d.requests.map((r) => r.id === id ? { ...r, approverId: user?.id ?? null } : r) });
+    const approve = (id: number) => setData((d) => changeStatus(withApprover(d, id), id, "pending_target", "อนุมัติ"));
+    const returnRequest = (id: number, reason: string) => setData((d) => changeStatus(withApprover(d, id), id, "returned", "ส่งกลับ", reason));
 
     // ---------- หัวหน้าแผนกปลายทาง ----------
     const acceptRequest = (id: number) => setData((d) => changeStatus(d, id, "in_progress", "รับงานและวางแผน"));

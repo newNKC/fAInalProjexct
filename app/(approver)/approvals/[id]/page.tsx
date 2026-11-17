@@ -6,6 +6,7 @@ import { CheckCircle1, Reply } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import ReasonDialog from "@/components/reason-dialog";
 import RequestDetail, { NotFound } from "@/components/request-detail";
+import { canApprove } from "@/data/requests";
 import { useStore } from "@/data/store";
 
 export default function Page() {
@@ -13,7 +14,8 @@ export default function Page() {
     const { id } = useParams<{ id: string }>();
     const [returnOpen, setReturnOpen] = useState(false);
 
-    const r = store.requests.find((x) => x.id === Number(id) && x.approverId === store.user?.id);
+    const me = store.user;
+    const r = store.requests.find((x) => x.id === Number(id) && !!me && (x.approverId === me.id || canApprove(store.users, me, x)));
     if (!r) return <NotFound backHref="/approvals" />;
 
     return (

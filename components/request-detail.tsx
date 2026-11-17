@@ -111,7 +111,8 @@ export default function RequestDetail({ request: r, backHref, backLabel, actions
                         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
                             <dt className="text-ink-3">ผู้ขอ</dt><dd className="font-medium text-ink">{requester?.name}</dd>
                             <dt className="text-ink-3">แผนกผู้ขอ</dt><dd className="text-ink">{requester?.dept}</dd>
-                            <dt className="text-ink-3">ผู้อนุมัติ</dt><dd className="text-ink">{approver?.name ?? "-"}</dd>
+                            <dt className="text-ink-3">ผู้อนุมัติ</dt>
+                            <dd className="text-ink">{approver?.name ?? (r.status === "pending_approval" ? `หัวหน้าต้นสังกัด${requester?.dept ?? ""}` : "-")}</dd>
                             <dt className="text-ink-3">แผนกปลายทาง</dt><dd className="text-ink">{r.targetDept}</dd>
                             <dt className="text-ink-3">วันที่ต้องการ</dt><dd className="text-ink">{thaiDate(r.dueDate)}</dd>
                             <dt className="text-ink-3">วันที่ส่ง</dt><dd className="text-ink">{thaiDate(r.createdAt)}</dd>
