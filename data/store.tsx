@@ -1,20 +1,18 @@
 'use client'
 
 // ข้อมูลกลางของทั้งระบบ (Context + localStorage)
-// ทุกหน้าอ่าน/เขียนข้อมูลผ่าน useStore() ที่นี่ที่เดียว รีเฟรชแล้วข้อมูลยังอยู่
-// ปุ่ม "ล้างข้อมูลตัวอย่าง" (resetDemo) จะคืนค่าเริ่มต้นทั้งหมด
+// ทุกหน้าอ่าน/เขียนข้อมูลผ่าน useStore() ที่นี่ที่เดียว รีเฟรชแล้วข้อมูลยังอยู่ และทุกแท็บเห็นข้อมูลชุดเดียวกัน
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { seedCategories, type Category } from "@/data/categories";
 import { defaultPermissions, type Permission } from "@/data/permissions";
 import {
-    findApprover, isLeafTask, requestProgress, seedLogs, seedRequests, seedTasks,
+    canView, findApprover, isLeafTask, nowISO, requestProgress, seedLogs, seedRequests, seedTasks,
     type Attachment, type Log, type Request, type Status, type Task,
 } from "@/data/requests";
 import { seedTeams, type Team } from "@/data/teams";
 import { users as seedUsers, type Role, type User } from "@/data/users";
 
-// ข้อมูลทั้งหมดที่เก็บใน localStorage
 type Data = {
     users: User[]
     permissions: Permission[]
@@ -23,13 +21,10 @@ type Data = {
     requests: Request[]
     tasks: Task[]
     logs: Log[]
+    restrictByTeam: boolean   // จำกัดการมองเห็นคำขอตามทีม (หน้า "ทีม")
 }
 
-// ผู้ที่เข้าสู่ระบบอยู่
-type Session = {
-    userId: number
-    role: Role
-}
+type Session = { userId: number }
 
 // ข้อมูลที่ผู้ขอกรอกในแบบฟอร์ม
 export type RequestDraft = {
@@ -41,7 +36,13 @@ export type RequestDraft = {
     attachments: Attachment[]
 }
 
-const DATA_KEY = "rq-data-v2";   // เปลี่ยนเลขเวอร์ชันเมื่อข้อมูลตัวอย่างเปลี่ยน → เบราว์เซอร์โหลดค่าเริ่มต้นใหม่
+// แผนงานที่หัวหน้าแผนกปลายทางแตกไว้ก่อนกด "ยืนยันรับงานและมอบหมาย"
+export type PlanDraft = {
+    title: string
+    subs: { title: string, assigneeId: number, dueDate: string }[]
+}[]
+
+const DATA_KEY = "rq-data-v3";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
 const SESSION_KEY = "rq-session-v1";
 
 const seed = (): Data => ({
@@ -52,15 +53,17 @@ const seed = (): Data => ({
     requests: seedRequests,
     tasks: seedTasks,
     logs: seedLogs,
+    restrictByTeam: false,
 });
 
 const nextId = (rows: { id: number }[]) => rows.reduce((max, r) => Math.max(max, r.id), 0) + 1;
-const now = () => new Date().toISOString();
+const now = () => nowISO();
 
 function useStoreValue() {
     const [data, setData] = useState<Data>(seed);
     const [session, setSession] = useState<Session | null>(null);
-    const [ready, setReady] = useState(false);   // อ่าน localStorage เสร็จแล้วหรือยัง
+    const [ready, setReady] = useState(false);
+    const [toast, setToast] = useState<{ id: number, text: string } | null>(null);
 
     // โหลดครั้งแรกจาก localStorage (ต้องรอฝั่งเบราว์เซอร์ จึงอ่านใน effect)
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -77,13 +80,12 @@ function useStoreValue() {
     }, []);
     /* eslint-enable react-hooks/set-state-in-effect */
 
-    // บันทึกทุกครั้งที่ข้อมูลเปลี่ยน
     useEffect(() => {
         if (!ready) return;
         try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch { }
     }, [data, ready]);
 
-    // เปิดหลายแท็บพร้อมกัน: แท็บอื่นแก้ข้อมูล → อัปเดตแท็บนี้ตาม (ไม่งั้นแท็บเก่าจะเขียนทับด้วยข้อมูลเก่า)
+    // เปิดหลายแท็บ: แท็บอื่นแก้ข้อมูล → แท็บนี้อัปเดตตาม
     useEffect(() => {
         const onStorage = (e: StorageEvent) => {
             if (e.key === DATA_KEY && e.newValue) {
@@ -94,8 +96,19 @@ function useStoreValue() {
         return () => window.removeEventListener("storage", onStorage);
     }, []);
 
+    // ข้อความแจ้งผล (toast) หายเองใน 4 วินาที
+    useEffect(() => {
+        if (!toast) return;
+        const t = setTimeout(() => setToast(null), 4000);
+        return () => clearTimeout(t);
+    }, [toast]);
+    const showToast = (text: string) => setToast(text ? { id: Date.now(), text } : null);
+
     const user = session ? data.users.find((u) => u.id === session.userId) ?? null : null;
     const userById = (id: number | null) => data.users.find((u) => u.id === id);
+    const teamOf = (r: Request) => data.teams.find((t) => t.id === r.teamId) ?? null;
+    // ผู้ใช้คนนี้ดูคำขอนี้ได้ไหม (ใช้กรองทุกรายการและหน้ารายละเอียด)
+    const canSee = (r: Request) => !!user && canView(data.users, user, r, { restrictByTeam: data.restrictByTeam, teamMembers: teamOf(r)?.memberIds ?? null });
 
     // ---------- เข้า / ออกจากระบบ ----------
     const login = (email: string, remember: boolean): User | null => {
@@ -104,7 +117,7 @@ function useStoreValue() {
         const full = typed.includes("@") ? typed : `${typed}@company.local`;
         const found = data.users.find((u) => u.email.toLowerCase() === full);
         if (!found || found.roles.length === 0) return null;
-        const s = { userId: found.id, role: found.roles[0] };
+        const s = { userId: found.id };
         setSession(s);
         localStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(SESSION_KEY);
@@ -118,15 +131,7 @@ function useStoreValue() {
         sessionStorage.removeItem(SESSION_KEY);
     }
 
-    const switchRole = (role: Role) => {
-        if (!session || session.role === role) return;
-        const s = { ...session, role };
-        setSession(s);
-        const storage = localStorage.getItem(SESSION_KEY) ? localStorage : sessionStorage;
-        storage.setItem(SESSION_KEY, JSON.stringify(s));
-    }
-
-    // ---------- ตัวช่วยเปลี่ยนสถานะ + บันทึกประวัติ ----------
+    // ---------- เปลี่ยนสถานะ + บันทึกประวัติ ----------
     const changeStatus = (d: Data, requestId: number, to: Status, action: string, reason = ""): Data => {
         const r = d.requests.find((x) => x.id === requestId);
         if (!r || !user) return d;
@@ -136,20 +141,24 @@ function useStoreValue() {
             logs: [...d.logs, { id: nextId(d.logs), requestId, actorId: user.id, action, fromStatus: r.status, toStatus: to, reason, createdAt: now() }],
         };
     }
+    const patchRequest = (d: Data, id: number, patch: Partial<Request>): Data =>
+        ({ ...d, requests: d.requests.map((r) => r.id === id ? { ...r, ...patch } : r) });
 
     // ---------- ผู้ขอ ----------
     const submitRequest = (draft: RequestDraft): Request | null => {
         if (!user) return null;
-        const approver = findApprover(data.users, user);
+        const hasApprover = !!findApprover(data.users, user.dept);
         const id = nextId(data.requests);
+        const maxCode = data.requests.reduce((m, r) => Math.max(m, Number(r.code.slice(4)) || 0), 0);
         const created: Request = {
             ...draft,
             id,
-            code: `REQ-${new Date().getFullYear()}-${String(id).padStart(4, "0")}`,
+            code: `REQ-${String(maxCode + 1).padStart(4, "0")}`,
             requesterId: user.id,
-            approverId: null,                 // ใส่ตอนมีคนอนุมัติ / ส่งกลับจริง
-            // ไม่มีหัวหน้าต้นสังกัด (ผู้ขอเป็นหัวหน้าเอง) → ข้ามขั้นอนุมัติ
-            status: approver ? "pending_approval" : "pending_target",
+            approverId: null,
+            teamId: null,
+            // แผนกที่ไม่มีหัวหน้าต้นสังกัดในระบบ → ข้ามขั้นอนุมัติ
+            status: hasApprover ? "pending_approval" : "pending_target",
             createdAt: now(),
         };
         setData((d) => ({
@@ -157,56 +166,51 @@ function useStoreValue() {
             requests: [...d.requests, created],
             logs: [...d.logs, {
                 id: nextId(d.logs), requestId: id, actorId: user.id,
-                action: approver ? "ส่งคำขอ" : "ส่งคำขอ (อนุมัติอัตโนมัติเพราะผู้ขอเป็นหัวหน้าต้นสังกัด)",
+                action: hasApprover ? "ส่งคำขอ" : "ส่งคำขอ (ไม่มีหัวหน้าต้นสังกัด ข้ามขั้นอนุมัติ)",
                 fromStatus: null, toStatus: created.status, reason: "", createdAt: now(),
             }],
         }));
         return created;
     }
 
-    const resubmitRequest = (id: number, draft: RequestDraft) => {
-        setData((d) => {
-            const updated = { ...d, requests: d.requests.map((r) => r.id === id ? { ...r, ...draft } : r) };
-            return changeStatus(updated, id, "pending_approval", "แก้ไขและส่งใหม่");
-        });
-    }
+    const resubmitRequest = (id: number, draft: RequestDraft) =>
+        setData((d) => changeStatus(patchRequest(d, id, draft), id, "pending_approval", "แก้ไขและส่งใหม่"));
 
-    const confirmDone = (id: number) => setData((d) => changeStatus(d, id, "done", "ยืนยันรับงาน"));
+    const confirmDone = (id: number) => setData((d) => changeStatus(d, id, "done", "ตรวจรับงาน"));
     const requestFix = (id: number, reason: string) => setData((d) => changeStatus(d, id, "in_progress", "ขอให้แก้ไขงาน", reason));
 
     // ---------- หัวหน้าต้นสังกัด ----------
-    // บันทึกว่าใครเป็นผู้อนุมัติจริง
-    const withApprover = (d: Data, id: number): Data =>
-        ({ ...d, requests: d.requests.map((r) => r.id === id ? { ...r, approverId: user?.id ?? null } : r) });
-    const approve = (id: number) => setData((d) => changeStatus(withApprover(d, id), id, "pending_target", "อนุมัติ"));
-    const returnRequest = (id: number, reason: string) => setData((d) => changeStatus(withApprover(d, id), id, "returned", "ส่งกลับ", reason));
+    const approve = (id: number) => setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "pending_target", "อนุมัติ"));
+    const returnRequest = (id: number, reason: string) => setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "returned", "ส่งกลับ", reason));
 
     // ---------- หัวหน้าแผนกปลายทาง ----------
-    const acceptRequest = (id: number) => setData((d) => changeStatus(d, id, "in_progress", "รับงานและวางแผน"));
-    const rejectRequest = (id: number, reason: string) => setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
-    const forwardRequest = (id: number, dept: string, reason: string) => setData((d) => {
-        const moved = { ...d, requests: d.requests.map((r) => r.id === id ? { ...r, targetDept: dept } : r) };
-        // สถานะยังเป็น "รอแผนกปลายทาง" แต่เปลี่ยนแผนก
-        return changeStatus(moved, id, "pending_target", `ส่งต่อไป${dept}`, reason);
+    const acceptWithPlan = (id: number, plan: PlanDraft, teamId: number | null) => setData((d) => {
+        const tasks = [...d.tasks];
+        for (const major of plan) {
+            const mainId = nextId(tasks);
+            const due = major.subs.map((s) => s.dueDate).sort().at(-1) ?? "";
+            tasks.push({ id: mainId, requestId: id, parentId: null, title: major.title, assigneeId: null, dueDate: due, progress: 0, completedAt: null });
+            for (const s of major.subs) {
+                tasks.push({ id: nextId(tasks), requestId: id, parentId: mainId, title: s.title, assigneeId: s.assigneeId, dueDate: s.dueDate, progress: 0, completedAt: null });
+            }
+        }
+        return changeStatus(patchRequest({ ...d, tasks }, id, { teamId }), id, "in_progress", "รับงานและมอบหมาย");
     });
-
-    const addTask = (task: Omit<Task, "id" | "progress">) =>
-        setData((d) => ({ ...d, tasks: [...d.tasks, { ...task, id: nextId(d.tasks), progress: 0 }] }));
-
-    const removeTask = (taskId: number) =>
-        setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== taskId && t.parentId !== taskId) }));
+    const rejectRequest = (id: number, reason: string) => setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
+    const forwardRequest = (id: number, dept: string, reason: string) =>
+        setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
 
     // ---------- ผู้รับงาน ----------
     const setProgress = (taskId: number, progress: number) => setData((d) => {
-        const tasks = d.tasks.map((t) => t.id === taskId ? { ...t, progress } : t);
+        const tasks = d.tasks.map((t) => t.id === taskId ? { ...t, progress, completedAt: progress === 100 ? (t.completedAt ?? now()) : null } : t);
         let next = { ...d, tasks };
         const task = tasks.find((t) => t.id === taskId);
         const request = d.requests.find((r) => r.id === task?.requestId);
         // งานทุกชิ้นครบ 100 → รอตรวจรับ
         if (task && request?.status === "in_progress") {
             const leaves = tasks.filter((t) => t.requestId === task.requestId && isLeafTask(t, tasks));
-            if (leaves.length > 0 && leaves.every((t) => t.progress === 100) && requestProgress(task.requestId, tasks) === 100) {
-                next = changeStatus(next, task.requestId, "pending_acceptance", "งานครบร้อยละ 100");
+            if (leaves.length > 0 && leaves.every((t) => t.progress === 100) && requestProgress(request, tasks) === 100) {
+                next = changeStatus(next, task.requestId, "pending_acceptance", "แผนกปลายทางปิดงาน 100%");
             }
         }
         return next;
@@ -215,7 +219,6 @@ function useStoreValue() {
     // ---------- ผู้ดูแลระบบ ----------
     const setUserRoles = (userId: number, roles: Role[]) =>
         setData((d) => ({ ...d, users: d.users.map((u) => u.id === userId ? { ...u, roles } : u) }));
-
     const setPermissions = (permissions: Permission[]) => setData((d) => ({ ...d, permissions }));
 
     const saveCategory = (c: Omit<Category, "id"> & { id?: number }) => setData((d) => ({
@@ -233,26 +236,28 @@ function useStoreValue() {
             : [...d.teams, { ...t, id: nextId(d.teams) }],
     }));
     const removeTeam = (id: number) => setData((d) => ({ ...d, teams: d.teams.filter((t) => t.id !== id) }));
+    const setRestrictByTeam = (on: boolean) => setData((d) => ({ ...d, restrictByTeam: on }));
 
-    // HR ซิงก์ (จำลอง): โหลดชื่อ แผนก ตำแหน่ง จากข้อมูลตั้งต้นใหม่ แต่คงโรลที่ผู้ดูแลตั้งไว้
+    // HR ซิงก์ (จำลอง): โหลดชื่อ แผนก ตำแหน่งใหม่ แต่คงโรลที่ผู้ดูแลตั้งไว้
     const syncHR = () => setData((d) => ({
         ...d,
         users: seedUsers.map((hr) => ({ ...hr, roles: d.users.find((u) => u.id === hr.id)?.roles ?? hr.roles })),
     }));
 
-    const resetDemo = () => setData(seed());
+    // โรลชุดนี้ (อย่างน้อย 1 โรล) ได้สิทธิ์ข้อนี้ไหม (หน้า "สิทธิ์โรล")
+    const hasPerm = (perm: string, roles: Role[]) => !!data.permissions.find((p) => p.id === perm)?.roles.some((r) => roles.includes(r));
+    const can = (perm: string) => !!user && hasPerm(perm, user.roles);
 
-    // แผนกทั้งหมด (จากรายชื่อพนักงาน)
     const depts = Array.from(new Set(data.users.map((u) => u.dept)));
 
     return {
-        ...data, ready, session, user, role: session?.role ?? null, depts, userById,
-        login, logout, switchRole,
+        ...data, ready, user, depts, userById, teamOf, canSee, hasPerm, can, toast, showToast,
+        login, logout,
         submitRequest, resubmitRequest, confirmDone, requestFix,
         approve, returnRequest,
-        acceptRequest, rejectRequest, forwardRequest, addTask, removeTask,
+        acceptWithPlan, rejectRequest, forwardRequest,
         setProgress,
-        setUserRoles, setPermissions, saveCategory, removeCategory, saveTeam, removeTeam, syncHR, resetDemo,
+        setUserRoles, setPermissions, saveCategory, removeCategory, saveTeam, removeTeam, setRestrictByTeam, syncHR,
     };
 }
 

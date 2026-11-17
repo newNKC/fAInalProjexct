@@ -1,11 +1,11 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import RoleShell from "@/components/role-shell";
 
-// หน้าในกลุ่มนี้เข้าได้เฉพาะคนที่มีโรล admin · เมนูอยู่ใน data/menus.tsx
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+// กลุ่มหน้า (admin) · เข้าได้เฉพาะผู้ที่มีโรลนี้
+export default function Layout({ children }: { children: ReactNode }) {
     return (
         <Suspense>
-            <RoleShell role="admin">{children}</RoleShell>
+            <RoleShell roles={["admin"]}>{children}</RoleShell>
         </Suspense>
     )
 }

@@ -1,11 +1,11 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import RoleShell from "@/components/role-shell";
 
-// หน้าในกลุ่มนี้เข้าได้เฉพาะคนที่มีโรล approver · เมนูอยู่ใน data/menus.tsx
-export default function ApproverLayout({ children }: { children: React.ReactNode }) {
+// กลุ่มหน้า (approver) · เข้าได้เฉพาะผู้ที่มีโรลนี้
+export default function Layout({ children }: { children: ReactNode }) {
     return (
         <Suspense>
-            <RoleShell role="approver">{children}</RoleShell>
+            <RoleShell roles={["approver"]}>{children}</RoleShell>
         </Suspense>
     )
 }

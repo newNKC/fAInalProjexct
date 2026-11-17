@@ -1,107 +1,100 @@
 'use client'
 
 import { useState } from "react";
-import { Pencil1, Plus, Trash1 } from "@tailgrids/icons";
-import { Button, buttonStyles } from "@/components/tailgrids/core/button";
-import { Dialog, DialogBody, DialogClose, DialogFooter, DialogHeader, DialogTitle } from "@/components/tailgrids/core/dialog";
+import { InfoCircle, Pencil1, Plus, Trash1 } from "@tailgrids/icons";
+import { Button } from "@/components/tailgrids/core/button";
+import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
-import { Backdrop } from "@/components/tailgrids/core/overlay";
-import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import Banner from "@/components/banner";
+import CategoryBadge from "@/components/category-badge";
 import PageHeader from "@/components/page-header";
+import { Card } from "@/components/request-parts";
+import { fieldClass } from "@/components/request-form";
+import SortSelect, { sortBy, type SortOption } from "@/components/sort-select";
 import type { Category } from "@/data/categories";
 import { useStore } from "@/data/store";
 import { cn } from "@/utils/cn";
 
-// สีให้เลือก (ชุดเดียวกับสีโรล)
-const colors = ["#4F46E5", "#2563EB", "#7C3AED", "#D97706", "#059669", "#E11D48", "#475569"];
+const COLORS = ["#4F46E5", "#0284C7", "#E11D48", "#D97706", "#059669", "#7C3AED", "#DB2777", "#475569"];
+type Draft = { id?: number, name: string, description: string, color: string, active: boolean }
+const blank: Draft = { name: "", description: "", color: COLORS[0], active: true };
 
+// หมวดคำขอ (ผู้ดูแลระบบ) · ลบได้เฉพาะหมวดที่ยังไม่มีคำขอ · ปิดใช้งานแล้วจะไม่โผล่ในแบบฟอร์มส่งคำขอ
 export default function Page() {
     const store = useStore();
+    const [draft, setDraft] = useState<Draft>(blank);
+    const [sort, setSort] = useState("name");
+    const used = (c: Category) => store.requests.filter((r) => r.categoryId === c.id).length;
 
-    // states
-    const [editing, setEditing] = useState<Partial<Category> | null>(null);   // null = ปิด dialog, ไม่มี id = เพิ่มใหม่
-    const [deleting, setDeleting] = useState<Category | null>(null);
+    const options: SortOption<Category>[] = [
+        { key: "name", label: "ชื่อหมวด", value: (c) => c.name },
+        { key: "used", label: "ใช้มากสุด", value: (c) => used(c), dir: "desc" },
+        { key: "active", label: "เปิดใช้งานก่อน", value: (c) => (c.active ? 0 : 1) },
+        { key: "id", label: "สร้างก่อน", value: (c) => c.id },
+    ];
 
-    const used = (id: number) => store.requests.filter((r) => r.categoryId === id).length;
-    const nameTaken = !!editing?.name?.trim() && store.categories.some((c) => c.name === editing.name?.trim() && c.id !== editing.id);
-    const canSave = !!editing?.name?.trim() && !nameTaken;
+    const save = () => {
+        if (!draft.name.trim()) return;
+        const dup = store.categories.some((c) => c.name === draft.name.trim() && c.id !== draft.id);
+        if (dup) return store.showToast(`มีหมวด “${draft.name.trim()}” อยู่แล้ว`);
+        store.saveCategory({ ...draft, name: draft.name.trim(), description: draft.description.trim() });
+        store.showToast(draft.id ? `แก้ไขหมวด “${draft.name.trim()}” แล้ว` : `เพิ่มหมวด “${draft.name.trim()}” แล้ว`);
+        setDraft(blank);
+    }
 
     return (
         <>
-            <PageHeader title="หมวดคำขอ" actions={
-                <Button size="sm" onPress={() => setEditing({ name: "", color: colors[0] })}><Plus />เพิ่มหมวด</Button>
-            } />
-
-            <TableRoot className="w-full bg-white text-sm">
-                <TableHeader>
-                    <TableRow className="bg-page">
-                        <TableHead>หมวด</TableHead>
-                        <TableHead>จำนวนคำขอ</TableHead>
-                        <TableHead />
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {store.categories.map((c) => (
-                        <TableRow key={c.id}>
-                            <TableCell>
-                                <span className="inline-flex items-center gap-2 font-medium text-ink">
-                                    <span className="size-3 rounded-full" style={{ background: c.color }} />{c.name}
-                                </span>
-                            </TableCell>
-                            <TableCell className="font-normal text-ink-2">{used(c.id)}</TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                    <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft [&>svg]:size-4")} onClick={() => setEditing(c)}>
-                                        <Pencil1 />แก้ไข
-                                    </button>
-                                    <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-[#BE123C] hover:bg-[#FFE4E6] [&>svg]:size-4")} onClick={() => setDeleting(c)}>
-                                        <Trash1 />ลบ
-                                    </button>
+            <PageHeader title="หมวดคำขอ" />
+            <div className="grid grid-cols-[1fr_22rem] items-start gap-6">
+                <Card title={`หมวดทั้งหมด (${store.categories.length})`} action={<SortSelect options={options} value={sort} onChange={setSort} />}>
+                    <ul className="flex flex-col divide-y divide-line">
+                        {sortBy(store.categories, options, sort).map((c) => (
+                            <li key={c.id} className={cn("flex items-center gap-4 py-3", !c.active && "opacity-60")}>
+                                <CategoryBadge category={c} />
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm text-ink-2">{c.description || "-"}</p>
+                                    <p className="text-xs text-ink-3">ใช้ {used(c)} คำขอ{!c.active && " · ปิดใช้งาน"}</p>
                                 </div>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </TableRoot>
+                                <label className="flex items-center gap-1.5 text-xs text-ink-2">
+                                    <Checkbox checked={c.active} onChange={(e) => store.saveCategory({ ...c, active: e.target.checked })} />เปิดใช้
+                                </label>
+                                <button aria-label={`แก้ไขหมวด ${c.name}`} onClick={() => setDraft({ ...c })}><Pencil1 className="size-4 text-ink-3 hover:text-brand" /></button>
+                                <button aria-label={`ลบหมวด ${c.name}`} disabled={used(c) > 0} title={used(c) > 0 ? "มีคำขอใช้หมวดนี้อยู่ ลบไม่ได้ (ปิดใช้งานแทน)" : "ลบหมวด"}
+                                    onClick={() => { store.removeCategory(c.id); store.showToast(`ลบหมวด “${c.name}” แล้ว`); }}
+                                    className="disabled:cursor-not-allowed disabled:opacity-30"><Trash1 className="size-4 text-ink-3 hover:text-red-600" /></button>
+                            </li>
+                        ))}
+                    </ul>
+                    <Banner tone="info" icon={<InfoCircle />} className="mt-3">ลบได้เฉพาะหมวดที่ยังไม่มีคำขอ · หมวดที่มีคำขอแล้วให้ปิดใช้งานแทน</Banner>
+                </Card>
 
-            {/* add / edit dialog */}
-            <Backdrop isOpen={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-                <Dialog>
-                    <DialogHeader><DialogTitle>{editing?.id ? "แก้ไขหมวด" : "เพิ่มหมวด"}</DialogTitle></DialogHeader>
-                    <DialogBody className="flex flex-col gap-3">
-                        <label htmlFor="cat-name" className="text-sm font-medium text-ink">ชื่อหมวด</label>
-                        <Input id="cat-name" className="w-full text-sm" value={editing?.name ?? ""} onChange={(e) => setEditing((c) => ({ ...c, name: e.target.value }))} />
-                        {nameTaken && <p className="text-sm text-red-600">มีหมวดชื่อนี้แล้ว</p>}
-                        <span className="text-sm font-medium text-ink">สี</span>
-                        <div className="flex gap-2">
-                            {colors.map((col) => (
-                                <button key={col} aria-label={`สี ${col}`} onClick={() => setEditing((c) => ({ ...c, color: col }))}
-                                    className={cn("size-8 rounded-full ring-offset-2", editing?.color === col && "ring-2 ring-ink")} style={{ background: col }} />
-                            ))}
+                <Card title={draft.id ? "แก้ไขหมวด" : "เพิ่มหมวดใหม่"}>
+                    <div className="flex flex-col gap-3">
+                        <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">ชื่อหมวด *
+                            <Input aria-label="ชื่อหมวด" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="เช่น ขอข้อมูล / รายงาน" />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">คำอธิบาย
+                            <textarea aria-label="คำอธิบาย" rows={3} className={fieldClass} value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} />
+                        </label>
+                        <div className="flex flex-col gap-1.5 text-sm font-medium text-ink">สีป้าย
+                            <div className="flex flex-wrap gap-2">
+                                {COLORS.map((c) => (
+                                    <button key={c} aria-label={`สี ${c}`} onClick={() => setDraft((d) => ({ ...d, color: c }))}
+                                        className={cn("size-7 rounded-full ring-offset-2", draft.color === c && "ring-2 ring-ink")} style={{ background: c }} />
+                                ))}
+                            </div>
+                            {draft.name && <CategoryBadge category={{ id: 0, ...draft }} className="w-fit" />}
                         </div>
-                    </DialogBody>
-                    <DialogFooter>
-                        <DialogClose appearance="outline">ยกเลิก</DialogClose>
-                        <DialogClose disabled={!canSave} onPress={() => editing && store.saveCategory({ id: editing.id, name: editing.name!.trim(), color: editing.color ?? colors[0] })}>บันทึก</DialogClose>
-                    </DialogFooter>
-                </Dialog>
-            </Backdrop>
-
-            {/* delete confirm */}
-            <Backdrop isOpen={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
-                <Dialog>
-                    <DialogHeader><DialogTitle>ลบหมวด “{deleting?.name}”?</DialogTitle></DialogHeader>
-                    <DialogBody className="text-sm text-ink-2">
-                        {deleting && used(deleting.id) > 0
-                            ? `หมวดนี้มีคำขอ ${used(deleting.id)} รายการ จึงลบไม่ได้ ให้แก้ชื่อหมวดแทน`
-                            : "ลบแล้วกู้คืนไม่ได้"}
-                    </DialogBody>
-                    <DialogFooter>
-                        <DialogClose appearance="outline">ยกเลิก</DialogClose>
-                        <DialogClose variant="danger" disabled={!deleting || used(deleting.id) > 0} onPress={() => deleting && store.removeCategory(deleting.id)}>ลบ</DialogClose>
-                    </DialogFooter>
-                </Dialog>
-            </Backdrop>
+                        <label className="flex items-center gap-2 text-sm text-ink">
+                            <Checkbox checked={draft.active} onChange={(e) => setDraft((d) => ({ ...d, active: e.target.checked }))} />เปิดใช้งานทันที
+                        </label>
+                        <div className="flex gap-2">
+                            {draft.id && <Button size="sm" appearance="outline" onPress={() => setDraft(blank)}>ยกเลิก</Button>}
+                            <Button size="sm" className="flex-1" disabled={!draft.name.trim()} onPress={save}>{draft.id ? "บันทึก" : <><Plus />เพิ่มหมวด</>}</Button>
+                        </div>
+                    </div>
+                </Card>
+            </div>
         </>
     )
 }

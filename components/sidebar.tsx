@@ -30,7 +30,7 @@ export type SidebarUser = {
 // คลาสที่เมนูทุกอันใช้ร่วมกัน (รวมวงแสงที่โผล่เฉพาะตอนกด Tab)
 const itemBase = "w-full justify-start gap-3 px-3 [&>svg]:size-[18px] focus:ring-0 focus-visible:ring-2 focus-visible:ring-brand/60"
 
-export default function Sidebar({ menu, user }: { menu: MenuItem[], user: SidebarUser }) {
+export default function Sidebar({ menu, user, onLogout }: { menu: MenuItem[], user: SidebarUser, onLogout?: () => void }) {
     const pathname = usePathname();
 
     // เมนูที่ตรงกับ URL มากที่สุด (กัน "คำขอของฉัน" กับ "สร้างคำขอ" ติดสีพร้อมกัน)
@@ -80,8 +80,8 @@ export default function Sidebar({ menu, user }: { menu: MenuItem[], user: Sideba
             <div className="flex-1" />
 
             {/* logout */}
-            {/* fix when fusion: ตอนกดออกจากระบบ ต้องล้างผู้ใช้ที่ล็อกอิน (Context / localStorage) ก่อนกลับไป /login */}
-            <Link href="/login"
+            {/* ออกจากระบบ: ล้างผู้ใช้ที่ล็อกอินแล้วกลับไป /login */}
+            <Link href="/login" onClick={onLogout}
                 className={cn(buttonStyles({ variant: "ghost", size: "sm" }), itemBase, "text-sidebar-ink hover:bg-sidebar-active/60 hover:text-white")}
             >
                 <Exit />

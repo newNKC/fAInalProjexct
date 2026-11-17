@@ -2,87 +2,117 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ArrowRight, CheckCircle1 } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import { Label } from "@/components/tailgrids/core/label";
 import { TextField } from "@/components/tailgrids/core/text-field";
-import { roleHome } from "@/data/requests";
+import RoleBadge from "@/components/role-badge";
+import { nick, primaryRole, roleHome } from "@/data/requests";
 import { useStore } from "@/data/store";
+import type { User } from "@/data/users";
 
-
+// บัญชีทดลอง 6 โรล (ตาม Figma "ทดลองเข้าใช้ตามโรล")
+const demoEmails = [
+    "requester.sales@company.local",
+    "approver.sales@company.local",
+    "head.it@company.local",
+    "assignee.it@company.local",
+    "executive.mgmt@company.local",
+    "admin.it@company.local",
+];
 
 export default function Page() {
     const router = useRouter();
     const store = useStore();
-
-    // states
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(true);
     const [error, setError] = useState("");
 
-    // เข้ามาหน้านี้ (รวมถึงกด "ออกจากระบบ" ที่ sidebar) → ล้างผู้ใช้ที่ล็อกอินไว้
+    // เข้ามาหน้านี้ → ล้างผู้ใช้ที่ล็อกอินไว้
     const { ready, logout } = store;
     useEffect(() => {
         if (ready) logout();
     }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // กดปุ่มเข้าสู่ระบบ
+    const go = (user: User) => router.push(roleHome[primaryRole(user)]);
+
     const login = () => {
-        // validate
-        if (!email.trim() || !password.trim()) {
-            setError("กรุณากรอกอีเมลและรหัสผ่าน");
-            return;
-        }
-        // หาพนักงานจากอีเมล (prototype: รหัสผ่านอะไรก็ได้)
-        const user = store.login(email, remember);
-        if (!user) {
-            setError("ไม่พบอีเมลนี้ในรายชื่อพนักงาน หรือบัญชียังไม่มีโรลในระบบ");
-            return;
-        }
+        if (!email.trim() || !password.trim()) return setError("กรุณากรอกอีเมลและรหัสผ่าน");
+        const user = store.login(email, remember);   // prototype: รหัสผ่านอะไรก็ได้
+        if (!user) return setError("ไม่พบอีเมลนี้ในรายชื่อพนักงาน หรือบัญชียังไม่มีโรลในระบบ");
         setError("");
-        router.push(roleHome[user.roles[0]]);   // ไปหน้าแรกของโรลแรก
+        go(user);
     }
 
+    const demos = demoEmails.map((e) => store.users.find((u) => u.email === e)).filter((u): u is User => !!u && u.roles.length > 0);
+
     return (
-        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-sidebar via-sidebar-active to-brand p-8">
-            {/* ===== login card ===== */}
-            <section className="flex w-[460px] flex-col gap-4 rounded-2xl bg-white p-8 shadow-2xl">
-                {/* logo + title */}
-                <span className="flex size-12 items-center justify-center rounded-xl bg-brand text-lg font-semibold text-white">RQ</span>
-                <div>
-                    <h2 className="text-2xl font-bold text-ink">เข้าสู่ระบบ</h2>
-                    <p className="text-sm text-ink-2">ใช้บัญชีพนักงานของบริษัท</p>
+        <div className="grid min-h-screen grid-cols-[1.1fr_1fr] bg-page">
+            {/* ===== ฝั่งแบรนด์ ===== */}
+            <section className="flex flex-col justify-between bg-linear-to-br from-sidebar via-sidebar-active to-brand p-12 text-white">
+                <div className="flex items-center gap-2.5">
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-brand text-sm font-semibold">RQ</span>
+                    <div className="leading-tight"><p className="font-semibold">ระบบจัดการคำขอ</p><p className="text-xs text-sidebar-ink">Software Request</p></div>
                 </div>
+                <div className="max-w-md">
+                    <h1 className="text-4xl leading-tight font-bold">ส่งคำขอ ติดตามงาน<br />ในที่เดียว</h1>
+                    <p className="mt-4 text-sm text-white/80">ขอพัฒนาหรือแก้ไขซอฟต์แวร์ได้จากหน้าเดียว หัวหน้าอนุมัติ แผนกปลายทางแบ่งงาน และคุณเห็นความคืบหน้าทุกขั้น</p>
+                    <ul className="mt-6 flex flex-col gap-3 text-sm">
+                        {["ส่งคำขอพร้อมไฟล์แนบ ไม่ต้องส่งต่อทางแชท", "รู้ว่าคำขออยู่ขั้นไหน ใครกำลังทำ กี่เปอร์เซ็นต์", "ผู้บริหารเห็นภาพรวมและงานเกินกำหนดทันที"].map((t) => (
+                            <li key={t} className="flex items-center gap-2.5"><CheckCircle1 className="size-5 text-[#A5B4FC]" />{t}</li>
+                        ))}
+                    </ul>
+                </div>
+                <p className="text-xs text-white/60">Prototype · ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น</p>
+            </section>
 
-                {/* email */}
-                <TextField className="gap-1.5">
-                    <Label className="font-medium text-ink">อีเมลพนักงาน</Label>
-                    <Input placeholder="เช่น requester.sales" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </TextField>
+            {/* ===== ฟอร์มเข้าสู่ระบบ ===== */}
+            <section className="flex items-center justify-center p-10">
+                <div className="flex w-[440px] flex-col gap-4">
+                    <div className="flex flex-col gap-4 rounded-2xl bg-white p-8 shadow-sm ring-1 ring-line">
+                        <div>
+                            <h2 className="text-2xl font-bold text-ink">เข้าสู่ระบบ</h2>
+                            <p className="text-sm text-ink-2">ใช้บัญชีพนักงานของบริษัท</p>
+                        </div>
+                        <TextField className="gap-1.5">
+                            <Label className="font-medium text-ink">อีเมลพนักงาน</Label>
+                            <Input placeholder="เช่น requester.sales" value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </TextField>
+                        <TextField className="gap-1.5">
+                            <Label className="font-medium text-ink">รหัสผ่าน</Label>
+                            <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && login()} />
+                        </TextField>
+                        <div className="flex items-center gap-2 text-sm text-ink">
+                            <Checkbox id="remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                            <label htmlFor="remember" className="cursor-pointer">จดจำการเข้าสู่ระบบ</label>
+                        </div>
+                        {error && <p className="text-sm text-red-600">{error}</p>}
+                        <Button className="w-full" onPress={login}>เข้าสู่ระบบ</Button>
+                    </div>
 
-                {/* password */}
-                <TextField className="gap-1.5">
-                    <Label className="font-medium text-ink">รหัสผ่าน</Label>
-                    <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && login()} />
-                </TextField>
-
-                {/* remember me */}
-                <div className="flex items-center gap-2 text-sm text-ink">
-    <Checkbox id="remember" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-    <label htmlFor="remember" className="cursor-pointer">จดจำการเข้าสู่ระบบ</label>
-</div>
-
-                {/* error message (แสดงเมื่อมี error เท่านั้น) */}
-                {error && <p className="text-sm text-red-600">{error}</p>}
-
-                <Button className="w-full" onPress={login}>เข้าสู่ระบบ</Button>
-
-
-
-
+                    {/* ทางลัดสำหรับทดลอง */}
+                    <div className="rounded-2xl bg-white p-5 ring-1 ring-line">
+                        <p className="text-sm font-semibold text-ink">ทดลองเข้าใช้ตามโรล (prototype)</p>
+                        <p className="mb-3 text-xs text-ink-3">กดชื่อเพื่อเข้าสู่ระบบเป็นคนนั้นทันที</p>
+                        <ul className="flex flex-col gap-1">
+                            {demos.map((u) => (
+                                <li key={u.id}>
+                                    <button onClick={() => { const found = store.login(u.email, remember); if (found) go(found); }}
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-page">
+                                        <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-strong">{u.name.slice(0, 1)}</span>
+                                        <span className="flex-1"><span className="font-medium text-ink">{nick(u.name)}</span><span className="text-xs text-ink-3"> · {u.dept}</span></span>
+                                        <RoleBadge role={primaryRole(u)} />
+                                        <ArrowRight className="size-4 text-ink-3" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
             </section>
         </div>
     )

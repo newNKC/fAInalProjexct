@@ -1,6 +1,6 @@
 import type { Role, User } from "@/data/users";
 
-// สถานะของคำขอ 7 แบบ (ตาม SRS หัวข้อ 2.2.4)
+// สถานะของคำขอ 7 แบบ (ตาม SRS) · "เกินกำหนด" ไม่ใช่สถานะที่เก็บ แต่คำนวณตอนแสดง (displayStatus)
 export type Status =
     | "pending_approval"     // รออนุมัติ
     | "returned"             // ส่งกลับแก้ไข
@@ -10,40 +10,39 @@ export type Status =
     | "pending_acceptance"   // รอตรวจรับ
     | "done"                 // เสร็จสิ้น
 
-// ไฟล์แนบ (prototype เก็บแค่ชื่อและขนาด ไม่ได้เก็บไฟล์จริง)
-export type Attachment = {
-    name: string
-    size: number
-}
+export type DisplayStatus = Status | "overdue"
 
-// คำขอ 1 รายการ
+// ไฟล์แนบ (prototype เก็บแค่ชื่อและขนาด)
+export type Attachment = { name: string, size: number }
+
 export type Request = {
     id: number
-    code: string              // เลขที่คำขอ เช่น REQ-2026-0001
+    code: string              // REQ-0152
     title: string
     detail: string
     categoryId: number
-    targetDept: string        // แผนกปลายทาง
-    dueDate: string           // วันที่ต้องการ (YYYY-MM-DD)
+    targetDept: string        // ส่งถึง (แผนกปลายทาง)
+    dueDate: string           // วันที่ต้องการ YYYY-MM-DD
     requesterId: number
-    approverId: number | null
+    approverId: number | null // คนที่อนุมัติ/ส่งกลับจริง
+    teamId: number | null     // ทีมที่รับผิดชอบ (ไม่บังคับ)
     status: Status
     attachments: Attachment[]
     createdAt: string         // ISO
 }
 
-// งานหลัก / งานย่อย (งานย่อยมี parentId)
+// งานหลัก (parentId = null, ไม่มีผู้รับผิดชอบ) / งานย่อย (มี parentId และผู้รับผิดชอบ)
 export type Task = {
     id: number
     requestId: number
     parentId: number | null
     title: string
-    assigneeId: number
+    assigneeId: number | null
     dueDate: string
     progress: number          // 0-100
+    completedAt: string | null
 }
 
-// ประวัติคำขอ 1 แถว
 export type Log = {
     id: number
     requestId: number
@@ -55,56 +54,21 @@ export type Log = {
     createdAt: string
 }
 
-// ===== helpers =====
+// ===== ผู้ใช้ =====
 
-// หัวหน้าต้นสังกัดของผู้ขอ = คนในแผนกเดียวกันที่มีโรล approver (ไม่ใช่ตัวเอง)
-export const findApprover = (users: User[], requester: User) =>
-    users.find((u) => u.dept === requester.dept && u.id !== requester.id && u.roles.includes("approver")) ?? null
-
-// คนนี้พิจารณาคำขอนี้ได้ไหม: เป็นหัวหน้าต้นสังกัด (approver) แผนกเดียวกับผู้ขอ และไม่ใช่คำขอของตัวเอง
-// เช็กจากโรลปัจจุบันทุกครั้ง ไม่ได้ล็อกผู้อนุมัติไว้ตอนส่ง → คนที่เพิ่งได้โรล approver เห็นคำขอที่รออยู่ทันที
-export const canApprove = (users: User[], user: User, r: Request) => {
-    const requester = users.find((u) => u.id === r.requesterId);
-    return r.status === "pending_approval" && user.roles.includes("approver")
-        && !!requester && requester.dept === user.dept && requester.id !== user.id
+// ชื่อเล่น เช่น "อรวรรณ ศรีสุข (แอน)" → "แอน", "สมศักดิ์ ใจดี" → "สมศักดิ์"
+export const nick = (name?: string) => {
+    if (!name) return "";
+    const m = name.match(/\(([^)]+)\)/);
+    return m ? m[1] : name.split(" ")[0];
 }
 
-// หัวหน้าแผนก = คนในแผนกที่มีโรล head
-export const findHead = (users: User[], dept: string) =>
-    users.find((u) => u.dept === dept && u.roles.includes("head")) ?? null
+// "ฝ่ายขาย" → "ฝ่าย", "แผนก IT" → "แผนก" (ใช้ตั้งชื่อเมนู "คำขอในฝ่าย/แผนก")
+export const deptKind = (dept: string) => dept.startsWith("ฝ่าย") ? "ฝ่าย" : "แผนก"
 
-// ความคืบหน้างานหลัก 1 งาน = เฉลี่ยงานย่อย (ถ้าไม่มีงานย่อยใช้ของตัวเอง)
-export const taskProgress = (task: Task, tasks: Task[]) => {
-    const subs = tasks.filter((t) => t.parentId === task.id);
-    if (subs.length === 0) return task.progress;
-    return Math.round(subs.reduce((sum, t) => sum + t.progress, 0) / subs.length);
-}
-
-// ความคืบหน้าของคำขอ = เฉลี่ยงานหลักทั้งหมด
-export const requestProgress = (requestId: number, tasks: Task[]) => {
-    const mains = tasks.filter((t) => t.requestId === requestId && t.parentId === null);
-    if (mains.length === 0) return 0;
-    return Math.round(mains.reduce((sum, t) => sum + taskProgress(t, tasks), 0) / mains.length);
-}
-
-// งานที่ผู้รับงานต้องรายงานเอง = งานย่อย + งานหลักที่ไม่มีงานย่อย
-export const isLeafTask = (task: Task, tasks: Task[]) =>
-    !tasks.some((t) => t.parentId === task.id)
-
-// เกินกำหนดหรือยัง (ยังไม่จบ และวันที่ต้องการผ่านไปแล้ว)
-export const isOverdue = (r: Request, today = new Date().toISOString().slice(0, 10)) =>
-    !["done", "rejected"].includes(r.status) && r.dueDate < today
-
-// วันที่แบบไทยสั้น เช่น 18 พ.ย. 69
-const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
-export const thaiDate = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.getDate()} ${months[d.getMonth()]} ${String(d.getFullYear() + 543).slice(2)}`
-}
-export const thaiDateTime = (iso: string) => {
-    const d = new Date(iso);
-    return `${thaiDate(iso)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-}
+// ลำดับความสำคัญของโรล (โรลแรกที่มี = โรลหลัก ใช้เลือกหน้าแรกและป้ายใน sidebar)
+export const roleRank: Role[] = ["admin", "executive", "head", "approver", "assignee", "requester"]
+export const primaryRole = (user: User): Role => roleRank.find((r) => user.roles.includes(r)) ?? user.roles[0]
 
 // หน้าแรกของแต่ละโรลหลังเข้าสู่ระบบ
 export const roleHome: Record<Role, string> = {
@@ -113,58 +77,224 @@ export const roleHome: Record<Role, string> = {
     head: "/incoming",
     assignee: "/tasks",
     executive: "/dashboard",
-    admin: "/admin/dashboard",
+    admin: "/dashboard",
 }
 
-// ===== ข้อมูลตัวอย่าง (เริ่มต้น) =====
-// คนในข้อมูลตัวอย่าง: 1 แอน, 2 เอก, 3 สมศักดิ์ (ฝ่ายขาย) · 4 วิชัย (หัวหน้า IT), 5 ต้น, 6 พลอย, 7 เก่ง (IT)
+export const findApprover = (users: User[], dept: string) =>
+    users.find((u) => u.dept === dept && u.roles.includes("approver")) ?? null
 
-const at = (day: number, hour = 9) => `2026-11-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:00:00+07:00`
+export const findHead = (users: User[], dept: string) =>
+    users.find((u) => u.dept === dept && u.roles.includes("head")) ?? null
 
-export const seedRequests: Request[] = [
-    { id: 1, code: "REQ-2026-0001", title: "เพิ่มรายงานยอดขายรายเดือนในระบบ CRM", detail: "ฝ่ายขายต้องการรายงานยอดขายแยกตามพนักงานและเดือน ส่งออกเป็น Excel ได้", categoryId: 2, targetDept: "แผนก IT", dueDate: "2026-12-10", requesterId: 1, approverId: 3, status: "in_progress", attachments: [{ name: "ตัวอย่างรายงาน.xlsx", size: 24576 }], createdAt: at(2) },
-    { id: 2, code: "REQ-2026-0002", title: "แก้บั๊กพิมพ์ใบเสนอราคาแล้วตัวหนังสือไทยเพี้ยน", detail: "กดพิมพ์ใบเสนอราคาเป็น PDF แล้วสระลอย ตัวอักษรซ้อนกัน", categoryId: 1, targetDept: "แผนก IT", dueDate: "2026-11-25", requesterId: 2, approverId: null, status: "pending_approval", attachments: [{ name: "ภาพหน้าจอ.png", size: 182400 }], createdAt: at(16, 14) },
-    { id: 3, code: "REQ-2026-0003", title: "ขอสิทธิ์ส่งออกข้อมูลลูกค้าจาก CRM", detail: "ต้องการส่งออกรายชื่อลูกค้าเพื่อทำแคมเปญสิ้นปี", categoryId: 3, targetDept: "แผนก IT", dueDate: "2026-11-16", requesterId: 1, approverId: 3, status: "pending_target", attachments: [], createdAt: at(12) },
-    { id: 4, code: "REQ-2026-0004", title: "เพิ่มช่องส่วนลดพิเศษในใบเสนอราคา", detail: "ต้องการกรอกส่วนลดเป็นเปอร์เซ็นต์ได้", categoryId: 4, targetDept: "แผนก IT", dueDate: "2026-12-20", requesterId: 2, approverId: 3, status: "returned", attachments: [], createdAt: at(10) },
-    { id: 5, code: "REQ-2026-0005", title: "ปรับหน้าค้นหาลูกค้าให้ค้นด้วยเบอร์โทรได้", detail: "ตอนนี้ค้นได้แค่ชื่อ อยากค้นด้วยเบอร์โทรด้วย", categoryId: 4, targetDept: "แผนก IT", dueDate: "2026-11-20", requesterId: 1, approverId: 3, status: "pending_acceptance", attachments: [], createdAt: at(3) },
-    { id: 6, code: "REQ-2026-0006", title: "แก้ยอดรวมภาษีในใบแจ้งหนี้คำนวณผิด", detail: "ยอดภาษีปัดเศษผิด 1 สตางค์", categoryId: 1, targetDept: "แผนก IT", dueDate: "2026-11-10", requesterId: 3, approverId: null, status: "done", attachments: [], createdAt: at(1) },
-    { id: 7, code: "REQ-2026-0007", title: "ปรับปรุงหน้าเข้าสู่ระบบของระบบลางาน", detail: "เพิ่มปุ่มแสดงรหัสผ่านและข้อความแจ้งเตือนภาษาไทย", categoryId: 4, targetDept: "แผนก IT", dueDate: "2026-12-15", requesterId: 5, approverId: 4, status: "pending_target", attachments: [], createdAt: at(14) },
-    { id: 8, code: "REQ-2026-0008", title: "ขอทำแอปมือถือสำหรับฝ่ายขาย", detail: "อยากได้แอปมือถือที่ทำทุกอย่างเหมือน CRM", categoryId: 2, targetDept: "แผนก IT", dueDate: "2026-11-15", requesterId: 2, approverId: 3, status: "rejected", attachments: [], createdAt: at(4) },
+// หัวหน้าต้นสังกัดพิจารณาคำขอนี้ได้ไหม (คำขอของคนในฝ่ายเดียวกัน รวมคำขอของตัวเองตาม Figma)
+export const canApprove = (users: User[], user: User, r: Request) => {
+    const requester = users.find((u) => u.id === r.requesterId);
+    return r.status === "pending_approval" && user.roles.includes("approver") && requester?.dept === user.dept
+}
+
+// ใครดูคำขอนี้ได้ · คนในแผนกเดียวกับผู้ขอ / แผนกปลายทาง (หัวหน้า, ผู้รับงาน) / ผู้บริหาร / ผู้ดูแลระบบ
+// เปิด "จำกัดการมองเห็นตามทีม" แล้ว คนในแผนกปลายทางที่ไม่ได้อยู่ทีมนั้นจะมองไม่เห็น (ยกเว้นหัวหน้าแผนก)
+export const canView = (users: User[], user: User, r: Request, opts: { restrictByTeam: boolean, teamMembers: number[] | null }) => {
+    if (user.roles.includes("executive") || user.roles.includes("admin")) return true;
+    const requester = users.find((u) => u.id === r.requesterId);
+    if (requester?.dept === user.dept) return true;
+    if (r.targetDept === user.dept) {
+        if (user.roles.includes("head")) return true;
+        if (opts.restrictByTeam && opts.teamMembers) return opts.teamMembers.includes(user.id);
+        return true;
+    }
+    return false;
+}
+
+// ===== งานและความคืบหน้า =====
+
+export const subtasksOf = (task: Task, tasks: Task[]) => tasks.filter((t) => t.parentId === task.id)
+
+export const taskProgress = (task: Task, tasks: Task[]) => {
+    const subs = subtasksOf(task, tasks);
+    if (subs.length === 0) return task.progress;
+    return Math.round(subs.reduce((sum, t) => sum + t.progress, 0) / subs.length);
+}
+
+export const requestProgress = (r: Request, tasks: Task[]) => {
+    if (r.status === "done") return 100;
+    const mains = tasks.filter((t) => t.requestId === r.id && t.parentId === null);
+    if (mains.length === 0) return 0;
+    return Math.round(mains.reduce((sum, t) => sum + taskProgress(t, tasks), 0) / mains.length);
+}
+
+// งานที่ผู้รับงานรายงานเอง = งานที่ไม่มีงานย่อยใต้ตัวเอง
+export const isLeafTask = (task: Task, tasks: Task[]) => !tasks.some((t) => t.parentId === task.id)
+
+// ===== วันที่ =====
+
+// เวลาปัจจุบันแบบมีเขตเวลาของเครื่อง เช่น 2026-11-18T09:40:00+07:00 (วันที่ตรงกับปฏิทินไทย ไม่เพี้ยนเป็น UTC)
+export const nowISO = () => {
+    const d = new Date();
+    const pad = (n: number) => String(Math.abs(n)).padStart(2, "0");
+    const off = -d.getTimezoneOffset();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${off >= 0 ? "+" : "-"}${pad(Math.trunc(off / 60))}:${pad(off % 60)}`
+}
+
+export const todayISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+// เกินกำหนด = ยังรอแผนกปลายทางหรือกำลังทำ และเลยวันที่ต้องการแล้ว
+export const isOverdue = (r: Request, today = todayISO()) =>
+    ["pending_target", "in_progress"].includes(r.status) && r.dueDate < today
+
+export const displayStatus = (r: Request): DisplayStatus => isOverdue(r) ? "overdue" : r.status
+
+export const daysBetween = (fromISO: string, toISO: string) =>
+    Math.round((Date.parse(toISO.slice(0, 10)) - Date.parse(fromISO.slice(0, 10))) / 864e5)
+
+export const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+
+// วันที่แบบไทย: "18 พ.ย." / แบบมีปี "18 พ.ย. 2569"
+export const thaiDate = (iso: string, withYear = false) => {
+    const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return `${d} ${thaiMonths[m - 1]}${withYear ? ` ${y + 543}` : ""}`
+}
+export const thaiDateTime = (iso: string) => {
+    const d = new Date(iso);
+    return `${thaiDate(iso, true)} · ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+}
+
+// อัปเดตล่าสุดของคำขอ = เวลาของประวัติล่าสุด
+export const lastUpdate = (r: Request, logs: Log[]) =>
+    logs.filter((l) => l.requestId === r.id).reduce((max, l) => l.createdAt > max ? l.createdAt : max, r.createdAt)
+
+// ===== ข้อมูลตัวอย่าง (อิงจาก Figma) =====
+// ผู้ใช้: 1 แอน, 2 เอก, 3 สมศักดิ์ (ฝ่ายขาย) · 4 วิชัย (หัวหน้าแผนก IT), 5 ต้น, 6 พลอย, 7 เก่ง (แผนก IT) · 8 ประภาพร · 9 นิด
+
+const at = (date: string, time = "09:00") => `${date}T${time}:00+07:00`
+
+type SeedRow = [code: number, title: string, cat: number, requester: number, status: Status, created: string, due: string, approver: number | null]
+
+const rows: SeedRow[] = [
+    [152, "เพิ่มตัวกรองลูกค้าในระบบ CRM", 2, 1, "pending_approval", "2026-11-11", "2026-11-30", null],
+    [156, "ข้อมูลลูกค้าซ้ำในระบบ CRM", 4, 2, "pending_approval", "2026-11-10", "2026-12-05", null],
+    [155, "รายงานค่าคอมมิชชันพนักงานขาย", 1, 3, "pending_approval", "2026-11-11", "2026-12-15", null],
+    [153, "หน้าค้นหาสินค้าในระบบขายช้า", 3, 2, "pending_target", "2026-11-09", "2026-11-28", 3],
+    [150, "ปรับแบบฟอร์มใบสั่งซื้อให้รองรับส่วนลด", 2, 2, "returned", "2026-11-08", "2026-12-20", 3],
+    [148, "ระบบรายงานยอดขายรายเดือน", 1, 1, "in_progress", "2026-10-20", "2026-11-30", 3],
+    [144, "ระบบแจ้งเตือนเมื่อสำรองข้อมูลล้มเหลว", 1, 5, "pending_target", "2026-11-08", "2026-12-10", 4],
+    [139, "หน้าออกใบแจ้งหนี้โหลดค้าง", 3, 1, "pending_acceptance", "2026-11-01", "2026-11-10", 3],
+    [137, "ปรับหน้าเข้าสู่ระบบของระบบภายใน", 2, 6, "done", "2026-10-26", "2026-11-06", 4],
+    [135, "นำเข้าข้อมูลลูกค้าจาก Excel ไม่ได้", 4, 2, "in_progress", "2026-10-28", "2026-11-05", 3],
+    [131, "ปรับสิทธิ์เข้าถึงโฟลเดอร์ฝ่ายขาย", 4, 2, "done", "2026-10-24", "2026-11-02", 3],
+    [129, "ปรับรูปแบบใบเสร็จฝ่ายขาย", 2, 3, "in_progress", "2026-10-15", "2026-11-12", 3],
+    [126, "ระบบจองห้องประชุม", 1, 1, "rejected", "2026-10-20", "2026-12-01", 3],
+    // คำขอย้อนหลังที่ปิดแล้ว (ให้กราฟรายเดือนมีข้อมูล)
+    [101, "เพิ่มช่องหมายเหตุในใบเสนอราคา", 2, 1, "done", "2026-01-12", "2026-01-30", 3],
+    [103, "แก้การปัดเศษยอดรวมใบแจ้งหนี้", 3, 2, "done", "2026-02-03", "2026-02-20", 3],
+    [105, "ระบบแจ้งเตือนลูกค้าค้างชำระ", 1, 1, "done", "2026-02-18", "2026-03-20", 3],
+    [107, "รีเซ็ตรหัสผ่านระบบ CRM ไม่ได้", 4, 2, "done", "2026-03-05", "2026-03-10", 3],
+    [109, "ปรับหน้ารายชื่อลูกค้าให้ค้นด้วยเบอร์โทร", 2, 1, "done", "2026-03-22", "2026-04-15", 3],
+    [111, "แก้รายงานภาษีขายแสดงผิดเดือน", 3, 3, "done", "2026-04-08", "2026-04-25", 3],
+    [113, "เพิ่มสิทธิ์ดูรายงานให้ผู้จัดการเขต", 4, 2, "done", "2026-05-02", "2026-05-09", 3],
+    [115, "ระบบบันทึกการเข้าพบลูกค้า", 1, 1, "done", "2026-05-20", "2026-06-30", 3],
+    [117, "ปรับหน้า Dashboard ฝ่ายขาย", 2, 3, "done", "2026-06-11", "2026-07-05", 3],
+    [119, "สคริปต์สำรองข้อมูลอัตโนมัติ", 1, 5, "done", "2026-06-25", "2026-07-20", 4],
+    [121, "แก้การส่งอีเมลยืนยันคำสั่งซื้อ", 3, 2, "done", "2026-07-14", "2026-07-25", 3],
+    [122, "เพิ่มตัวกรองวันที่ในรายงานคลังสินค้า", 2, 7, "done", "2026-08-06", "2026-08-30", 4],
+    [123, "นำเข้าราคาสินค้าจาก Excel", 1, 1, "done", "2026-08-21", "2026-09-15", 3],
+    [124, "แก้หน้าพิมพ์ใบส่งของตัวหนังสือเพี้ยน", 3, 2, "done", "2026-09-09", "2026-09-20", 3],
+    [125, "ขอสิทธิ์เข้าระบบบัญชีให้พนักงานใหม่", 4, 3, "rejected", "2026-09-28", "2026-10-05", 3],
 ]
 
-export const seedTasks: Task[] = [
-    // คำขอ 1: กำลังดำเนินการ
-    { id: 1, requestId: 1, parentId: null, title: "ออกแบบหน้ารายงาน", assigneeId: 5, dueDate: "2026-11-28", progress: 0 },
-    { id: 2, requestId: 1, parentId: 1, title: "ร่างหน้าจอรายงาน", assigneeId: 5, dueDate: "2026-11-20", progress: 100 },
-    { id: 3, requestId: 1, parentId: 1, title: "เขียนคำสั่งดึงยอดขาย", assigneeId: 6, dueDate: "2026-11-26", progress: 60 },
-    { id: 4, requestId: 1, parentId: null, title: "ทดสอบรายงาน", assigneeId: 7, dueDate: "2026-12-05", progress: 0 },
-    // คำขอ 5: รอตรวจรับ (ครบ 100 แล้ว)
-    { id: 5, requestId: 5, parentId: null, title: "เพิ่มการค้นด้วยเบอร์โทร", assigneeId: 6, dueDate: "2026-11-15", progress: 100 },
-    { id: 6, requestId: 5, parentId: null, title: "ทดสอบการค้นหา", assigneeId: 7, dueDate: "2026-11-17", progress: 100 },
-    // คำขอ 6: เสร็จสิ้น
-    { id: 7, requestId: 6, parentId: null, title: "แก้สูตรปัดเศษภาษี", assigneeId: 5, dueDate: "2026-11-06", progress: 100 },
+const details: Record<number, string> = {
+    152: "ฝ่ายขายต้องการกรองรายชื่อลูกค้าตามจังหวัด ประเภทลูกค้า และยอดซื้อย้อนหลัง เพื่อวางแผนเยี่ยมลูกค้า",
+    148: "ฝ่ายขายต้องการรายงานยอดขายแยกตามพนักงานและเดือน ส่งออกเป็น Excel ได้ ใช้แทนการรวมยอดด้วยมือทุกสิ้นเดือน",
+    139: "หน้าออกใบแจ้งหนี้โหลดนานเกิน 1 นาทีเมื่อมีรายการมากกว่า 50 บรรทัด บางครั้งค้างจนต้องปิดหน้า",
+}
+
+const files: Record<number, Attachment[]> = {
+    152: [{ name: "ตัวอย่างหน้าจอ CRM.png", size: 240 * 1024 }, { name: "ฟิลด์ที่ต้องการกรอง.xlsx", size: 18 * 1024 }],
+    148: [{ name: "ตัวอย่างรายงานเดิม.xlsx", size: 56 * 1024 }, { name: "ขอบเขตงาน.pdf", size: 310 * 1024 }],
+    139: [{ name: "ภาพหน้าจอตอนค้าง.png", size: 120 * 1024 }],
+}
+
+const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5).toISOString().slice(0, 10)
+
+export const seedRequests: Request[] = rows.map(([code, title, cat, requester, status, created, due, approver], i) => ({
+    id: i + 1,
+    code: `REQ-${String(code).padStart(4, "0")}`,
+    title,
+    detail: details[code] ?? `${title} · รายละเอียดเพิ่มเติมตามที่คุยกับหัวหน้าต้นสังกัดแล้ว`,
+    categoryId: cat,
+    targetDept: "แผนก IT",
+    dueDate: due,
+    requesterId: requester,
+    approverId: approver,
+    teamId: [148, 135, 139].includes(code) ? 1 : null,
+    status,
+    attachments: files[code] ?? [],
+    createdAt: at(created, code === 152 ? "09:40" : code === 148 ? "10:15" : code === 139 ? "13:05" : "09:00"),
+}))
+
+const idOf = (code: number) => rows.findIndex((r) => r[0] === code) + 1
+
+// งาน: [รหัสคำขอ, งานหลัก, [งานย่อย, ผู้รับผิดชอบ, กำหนดส่ง, %]]
+const plan: [number, string, [string, number, string, number][]][] = [
+    [148, "วางแผน", [["วิเคราะห์ความต้องการรายงาน", 5, "2026-10-24", 100], ["ประเมินเวลาและคน", 4, "2026-10-24", 100]]],
+    [148, "ออกแบบรายงาน", [["ออกแบบหน้ารายงาน", 6, "2026-11-06", 100]]],
+    [148, "พัฒนา", [["API รายงานยอดขายรายเดือน", 5, "2026-11-18", 50], ["หน้าจอรายงาน", 6, "2026-11-21", 30]]],
+    [148, "ทดสอบ", [["ทดสอบรายงานกับข้อมูลจริง", 7, "2026-11-27", 0]]],
+    [139, "วิเคราะห์สาเหตุ", [["หาคำสั่งที่ทำให้ช้า", 5, "2026-11-04", 100]]],
+    [139, "แก้ไขระบบ", [["ปรับคำสั่งดึงข้อมูลใบแจ้งหนี้", 5, "2026-11-07", 100]]],
+    [139, "ทดสอบ", [["ทดสอบกับใบแจ้งหนี้ 200 บรรทัด", 7, "2026-11-09", 100]]],
+    [135, "แก้ไข", [["แก้การอ่านไฟล์ Excel", 5, "2026-11-04", 40]]],
+    [135, "ทดสอบ", [["ทดสอบนำเข้าไฟล์ลูกค้า", 7, "2026-11-05", 40]]],
+    [129, "พัฒนา", [["ปรับแม่แบบใบเสร็จ", 6, "2026-11-10", 60]]],
+    [129, "ทดสอบ", [["ตรวจรูปแบบกับฝ่ายขาย", 7, "2026-11-12", 0]]],
+    [137, "พัฒนา", [["ปรับหน้าเข้าสู่ระบบ", 6, "2026-11-03", 100]]],
+    [131, "ตั้งค่าสิทธิ์", [["ปรับสิทธิ์โฟลเดอร์", 7, "2026-10-30", 100]]],
 ]
 
-export const seedLogs: Log[] = [
-    { id: 1, requestId: 1, actorId: 1, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(2) },
-    { id: 2, requestId: 1, actorId: 3, action: "อนุมัติ", fromStatus: "pending_approval", toStatus: "pending_target", reason: "", createdAt: at(2, 15) },
-    { id: 3, requestId: 1, actorId: 4, action: "รับงานและวางแผน", fromStatus: "pending_target", toStatus: "in_progress", reason: "", createdAt: at(4) },
-    { id: 4, requestId: 2, actorId: 2, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(16, 14) },
-    { id: 5, requestId: 3, actorId: 1, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(12) },
-    { id: 6, requestId: 3, actorId: 3, action: "อนุมัติ", fromStatus: "pending_approval", toStatus: "pending_target", reason: "", createdAt: at(13) },
-    { id: 7, requestId: 4, actorId: 2, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(10) },
-    { id: 8, requestId: 4, actorId: 3, action: "ส่งกลับ", fromStatus: "pending_approval", toStatus: "returned", reason: "กรุณาระบุว่าส่วนลดสูงสุดได้กี่เปอร์เซ็นต์ และใครเป็นคนอนุมัติส่วนลด", createdAt: at(11) },
-    { id: 9, requestId: 5, actorId: 1, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(3) },
-    { id: 10, requestId: 5, actorId: 3, action: "อนุมัติ", fromStatus: "pending_approval", toStatus: "pending_target", reason: "", createdAt: at(3, 13) },
-    { id: 11, requestId: 5, actorId: 4, action: "รับงานและวางแผน", fromStatus: "pending_target", toStatus: "in_progress", reason: "", createdAt: at(5) },
-    { id: 12, requestId: 5, actorId: 7, action: "งานครบร้อยละ 100", fromStatus: "in_progress", toStatus: "pending_acceptance", reason: "", createdAt: at(17) },
-    { id: 13, requestId: 6, actorId: 3, action: "ส่งคำขอ (อนุมัติอัตโนมัติเพราะผู้ขอเป็นหัวหน้าต้นสังกัด)", fromStatus: null, toStatus: "pending_target", reason: "", createdAt: at(1) },
-    { id: 14, requestId: 6, actorId: 4, action: "รับงานและวางแผน", fromStatus: "pending_target", toStatus: "in_progress", reason: "", createdAt: at(1, 14) },
-    { id: 15, requestId: 6, actorId: 5, action: "งานครบร้อยละ 100", fromStatus: "in_progress", toStatus: "pending_acceptance", reason: "", createdAt: at(6) },
-    { id: 16, requestId: 6, actorId: 3, action: "ยืนยันรับงาน", fromStatus: "pending_acceptance", toStatus: "done", reason: "", createdAt: at(7) },
-    { id: 17, requestId: 7, actorId: 5, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(14) },
-    { id: 18, requestId: 7, actorId: 4, action: "อนุมัติ", fromStatus: "pending_approval", toStatus: "pending_target", reason: "", createdAt: at(14, 16) },
-    { id: 19, requestId: 8, actorId: 2, action: "ส่งคำขอ", fromStatus: null, toStatus: "pending_approval", reason: "", createdAt: at(4) },
-    { id: 20, requestId: 8, actorId: 3, action: "อนุมัติ", fromStatus: "pending_approval", toStatus: "pending_target", reason: "", createdAt: at(4, 15) },
-    { id: 21, requestId: 8, actorId: 4, action: "ปฏิเสธ", fromStatus: "pending_target", toStatus: "rejected", reason: "ขอบเขตใหญ่เกินกว่าจะทำเป็นคำขอเดียว ขอให้แยกเป็นฟีเจอร์ที่ต้องใช้จริงก่อน", createdAt: at(6) },
-]
+export const seedTasks: Task[] = (() => {
+    const out: Task[] = [];
+    for (const [code, major, subs] of plan) {
+        const requestId = idOf(code);
+        const mainId = out.length + 1;
+        out.push({ id: mainId, requestId, parentId: null, title: major, assigneeId: null, dueDate: subs.at(-1)![2], progress: 0, completedAt: null });
+        for (const [title, who, due, p] of subs) {
+            out.push({ id: out.length + 1, requestId, parentId: mainId, title, assigneeId: who, dueDate: due, progress: p, completedAt: p === 100 ? at(due, "17:00") : null });
+        }
+    }
+    return out;
+})();
+
+// ประวัติ: สร้างตามสถานะของแต่ละคำขอ
+export const seedLogs: Log[] = (() => {
+    const out: Log[] = [];
+    const add = (requestId: number, actorId: number, action: string, from: Status | null, to: Status, date: string, reason = "", time = "09:00") =>
+        out.push({ id: out.length + 1, requestId, actorId, action, fromStatus: from, toStatus: to, reason, createdAt: at(date, time) });
+    for (const r of seedRequests) {
+        const c = r.createdAt.slice(0, 10);
+        const code = Number(r.code.slice(4));
+        const head = 4;
+        add(r.id, r.requesterId, "ส่งคำขอ", null, "pending_approval", c, "", r.createdAt.slice(11, 16));
+        if (r.status === "pending_approval") continue;
+        if (r.status === "returned") {
+            add(r.id, r.approverId!, "ส่งกลับ", "pending_approval", "returned", addDays(c, 2), "กรุณาระบุว่าส่วนลดสูงสุดได้กี่เปอร์เซ็นต์ และใครเป็นคนอนุมัติส่วนลด");
+            continue;
+        }
+        add(r.id, r.approverId!, "อนุมัติ", "pending_approval", "pending_target", addDays(c, 1));
+        if (r.status === "pending_target") continue;
+        if (r.status === "rejected") {
+            add(r.id, head, "ปฏิเสธ", "pending_target", "rejected", addDays(c, 3), code === 126 ? "ระบบจองห้องประชุมของบริษัทกลางมีอยู่แล้ว ให้ใช้ระบบเดิม" : "ไม่อยู่ในขอบเขตงานของแผนก IT");
+            continue;
+        }
+        add(r.id, head, "รับงานและมอบหมาย", "pending_target", "in_progress", addDays(c, 2));
+        if (r.status === "in_progress") continue;
+        const end = code === 139 ? "2026-11-09" : addDays(r.dueDate, -2);
+        add(r.id, 7, "แผนกปลายทางปิดงาน 100%", "in_progress", "pending_acceptance", end, "", "16:00");
+        if (r.status === "pending_acceptance") continue;
+        add(r.id, r.requesterId, "ตรวจรับงาน", "pending_acceptance", "done", addDays(end, 1));
+    }
+    return out;
+})();
+

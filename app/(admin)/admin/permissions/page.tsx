@@ -5,6 +5,7 @@ import { Check, CheckCircle1, Locked3, Reload } from "@tailgrids/icons";
 import { Button } from "@/components/tailgrids/core/button";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import PageHeader from "@/components/page-header";
 import RoleBadge from "@/components/role-badge";
 import { defaultPermissions, isLocked, type Permission } from "@/data/permissions";
 import { useStore } from "@/data/store";
@@ -37,6 +38,7 @@ export default function Page() {
     const save = () => {
         store.setPermissions(permissions);
         setJustSaved(true);
+        store.showToast("บันทึกสิทธิ์โรลแล้ว · เมนูของผู้ใช้เปลี่ยนตามทันที");
     }
 
     // ปุ่มคืนค่าเริ่มต้น
@@ -47,11 +49,7 @@ export default function Page() {
 
     return (
         <>
-            {/* page header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-ink">ตั้งค่าสิทธิ์ของโรล</h1>
-                <p className="text-xs text-ink-2">{store.user?.name} · {store.user?.position}</p>
-            </div>
+            <PageHeader title="สิทธิ์โรล" />
 
             {/* warning banner */}
             {/* fix when fusion: สีเหลืองยังเป็น hex → เปลี่ยนเป็น token สีสถานะเมื่อตกลงชื่อกันแล้ว */}

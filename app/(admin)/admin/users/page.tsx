@@ -7,8 +7,9 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Dialog, DialogBody, DialogClose, DialogFooter, DialogHeader, DialogTitle } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
-import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
+import PageHeader from "@/components/page-header";
 import RoleBadge from "@/components/role-badge";
+import SortTable from "@/components/sort-table";
 import { useStore } from "@/data/store";
 import { allRoles, type Role, type User } from "@/data/users";
 import { cn } from "@/utils/cn";
@@ -47,15 +48,12 @@ export default function Page() {
     const saveRoles = () => {
         if (!editing) return;
         store.setUserRoles(editing.id, allRoles.filter((r) => draftRoles.includes(r)));
+        store.showToast(`บันทึกโรลของ ${editing.name} แล้ว`);
     }
 
     return (
         <>
-            {/* page header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-ink">จัดการผู้ใช้</h1>
-                <p className="text-xs text-ink-2">{store.user?.name} · {store.user?.position}</p>
-            </div>
+            <PageHeader title="จัดการผู้ใช้" />
 
             {/* toolbar */}
             <div className="mb-4 flex items-center gap-3">
@@ -73,7 +71,7 @@ export default function Page() {
                     </button>
                 ))}
                 <div className="flex-1" />
-                <Button size="sm" appearance="outline" onPress={store.syncHR}><Reload />ซิงก์ข้อมูล HR</Button>
+                <Button size="sm" appearance="outline" onPress={() => { store.syncHR(); store.showToast("ซิงก์ข้อมูล HR แล้ว · โรลที่ตั้งไว้ยังอยู่ครบ"); }}><Reload />ซิงก์ข้อมูล HR</Button>
             </div>
 
             {/* warning banner */}
@@ -82,56 +80,39 @@ export default function Page() {
                 ชื่อ แผนก และตำแหน่งดึงจากฐานข้อมูล HR (จำลอง) แก้ในระบบนี้ไม่ได้ · ผู้ดูแลระบบแก้ได้เฉพาะโรลในระบบ
             </div>
 
-            {/* table */}
-            <TableRoot className="w-full bg-white text-sm">
-                <TableHeader>
-                    <TableRow className="bg-page">
-                        <TableHead>ผู้ใช้</TableHead>
-                        <TableHead>แผนก (HR)</TableHead>
-                        <TableHead>ตำแหน่ง (HR)</TableHead>
-                        <TableHead>โรลในระบบ</TableHead>
-                        <TableHead />
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {/* no result */}
-                    {shown.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={5} className="py-10 text-center text-ink-3">ไม่พบผู้ใช้ที่ตรงกับเงื่อนไข</TableCell>
-                        </TableRow>
-                    )}
-
-                    {/* rows */}
-                    {shown.map((u) => (
-                        <TableRow key={u.id}>
-                            <TableCell>
-                                <div className="flex items-center gap-2.5">
-                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-strong">{u.name.slice(0, 1)}</span>
-                                    <div>
-                                        <p className="font-medium text-ink">{u.name}</p>
-                                        <p className="text-xs font-normal text-ink-3">{u.email}</p>
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell className="font-normal text-ink-2">{u.dept}</TableCell>
-                            <TableCell className="font-normal text-ink-2">
-                                <span className="flex items-center gap-1.5"><Locked3 className="size-3.5 text-ink-3" />{u.position}</span>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                    {u.roles.map((r) => <RoleBadge key={r} role={r} />)}
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
-                                    onClick={() => openEdit(u)}>
-                                    <Pencil1 />แก้โรล
-                                </button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </TableRoot>
+            {/* table (กดหัวคอลัมน์เพื่อเรียง) */}
+            <SortTable rows={shown} rowKey={(u) => u.id} initialSort={{ key: "name", dir: "asc" }} empty="ไม่พบผู้ใช้ที่ตรงกับเงื่อนไข" columns={[
+                {
+                    key: "name", label: "ผู้ใช้", sortValue: (u) => u.name, render: (u) => (
+                        <div className="flex items-center gap-2.5">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-strong">{u.name.slice(0, 1)}</span>
+                            <div>
+                                <p className="font-medium text-ink">{u.name}</p>
+                                <p className="text-xs font-normal text-ink-3">{u.email}</p>
+                            </div>
+                        </div>
+                    ),
+                },
+                { key: "dept", label: "แผนก (HR)", sortValue: (u) => u.dept, render: (u) => <span className="font-normal text-ink-2">{u.dept}</span> },
+                {
+                    key: "position", label: "ตำแหน่ง (HR)", sortValue: (u) => u.position, render: (u) => (
+                        <span className="flex items-center gap-1.5 font-normal text-ink-2"><Locked3 className="size-3.5 text-ink-3" />{u.position}</span>
+                    ),
+                },
+                {
+                    key: "roles", label: "โรลในระบบ", sortValue: (u) => allRoles.findIndex((r) => u.roles.includes(r)), render: (u) => (
+                        <div className="flex flex-wrap gap-1">{u.roles.map((r) => <RoleBadge key={r} role={r} />)}</div>
+                    ),
+                },
+                {
+                    key: "edit", label: "", className: "text-right", render: (u) => (
+                        <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "ml-auto text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
+                            onClick={() => openEdit(u)}>
+                            <Pencil1 />แก้โรล
+                        </button>
+                    ),
+                },
+            ]} />
 
             {/* edit roles dialog */}
             <Backdrop isOpen={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>

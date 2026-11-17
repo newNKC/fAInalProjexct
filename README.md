@@ -25,35 +25,42 @@ npm run dev
 | assignee2.it | พลอย | ผู้รับงาน | /tasks |
 | assignee3.it | เก่ง | ผู้รับงาน | /tasks |
 | executive.mgmt | ประภาพร | ผู้บริหาร | /dashboard |
-| admin.it | นิด | ผู้ดูแลระบบ | /admin/dashboard |
+| admin.it | นิด | ผู้ดูแลระบบ | /dashboard |
 
-คนที่มีหลายโรลจะเห็นเมนูของทุกโรลใน sidebar แยกหัวข้อตามโรล ไม่ต้องสลับโรล (เมนูอยู่ใน `data/menus.tsx`)
+หน้า login มีรายชื่อ "ทดลองเข้าใช้ตามโรล" 6 คน กดชื่อเพื่อเข้าสู่ระบบทันที
 
-ถ้าอยากล้างข้อมูลกลับเป็นค่าเริ่มต้น: เปิด DevTools → Application → Local Storage → ลบ `rq-data-v2`
+คนที่มีหลายโรลจะเห็นเมนูของทุกโรลรวมกันใน sidebar (ไม่ซ้ำ ไม่ต้องสลับโรล) · เมนูตาม Figma อยู่ใน `data/menus.tsx`
+
+ถ้าอยากล้างข้อมูลกลับเป็นค่าเริ่มต้น: เปิด DevTools → Application → Local Storage → ลบ `rq-data-v3`
 
 ## โครงสร้างไฟล์
 
 ```
 app/
-  login/                    หน้าเข้าสู่ระบบ
-  (requester)/              ผู้ขอ: requests, requests/new, requests/[id], requests/[id]/edit
+  login/                    หน้าเข้าสู่ระบบ + ทางลัดทดลองตามโรล
+  (app)/                    หน้าที่หลายโรลใช้ร่วมกัน (แต่ละหน้าตรวจสิทธิ์ด้วย <Guard>)
+                            requests (คำขอของฉัน/ในฝ่าย/ในแผนก), requests/new, requests/[id], requests/[id]/edit,
+                            dashboard (หัวหน้าต้นสังกัด/หัวหน้าแผนก/ผู้บริหาร/ผู้ดูแลระบบ), teams (หัวหน้าแผนก/ผู้ดูแลระบบ)
   (approver)/               หัวหน้าต้นสังกัด: approvals, approvals/[id]
-  (head)/                   หัวหน้าแผนกปลายทาง: incoming, incoming/[id] (รับ/ปฏิเสธ/ส่งต่อ/วางแผนงาน), workload
+  (head)/                   หัวหน้าแผนกปลายทาง: incoming, incoming/[id]/plan, incoming/[id]/decline
   (assignee)/               ผู้รับงาน: tasks
-  (executive)/              ผู้บริหาร: dashboard, dashboard/[id]
-  (admin)/                  ผู้ดูแลระบบ: admin/dashboard, users, categories, permissions, teams
+  (admin)/                  ผู้ดูแลระบบ: admin/users, admin/categories, admin/permissions
 components/
   sidebar.tsx, role-badge.tsx         ไฟล์กลางเดิม
-  role-shell.tsx                      ตรวจการเข้าสู่ระบบ + โรล แล้วแสดง sidebar (ทุก layout ใช้)
-  request-detail.tsx                  รายละเอียดคำขอ (ทุกโรลใช้ร่วมกัน)
-  request-form.tsx, request-table.tsx, status-badge.tsx, progress-bar.tsx,
-  reason-dialog.tsx, filter-chips.tsx, page-header.tsx, dashboard-view.tsx
+  role-shell.tsx                      ตรวจการเข้าสู่ระบบ + โรล, sidebar, toast, Guard
+  page-header.tsx                     หัวเพจ: ย้อนกลับ · ชื่อหน้า · มุมมองของ · ค้นหาคำขอ · กระดิ่ง
+  request-parts.tsx                   การ์ดสรุปคำขอ, ขั้นตอนคำขอ, ข้อมูลคำขอ, ประวัติ, งานหลัก/งานย่อย
+  request-form.tsx                    แบบฟอร์มส่งคำขอ (ลากไฟล์มาวางได้)
+  sort-table.tsx, sort-select.tsx     ตาราง/รายการที่เรียงตามหัวข้อได้
+  status-badge.tsx, category-badge.tsx, stat-card.tsx, banner.tsx, inbox-card.tsx,
+  progress-bar.tsx, filter-chips.tsx, reason-dialog.tsx, action-items.ts
   tailgrids/core/                     คอมโพเนนต์ของ TailGrids (ไม่แก้)
 data/
   store.tsx                 ข้อมูลกลาง (Context + localStorage) ทุกหน้าใช้ useStore()
   users.ts, permissions.ts  ข้อมูลเดิม
   requests.ts               ชนิดข้อมูลคำขอ/งาน/ประวัติ + ข้อมูลตัวอย่าง + ฟังก์ชันช่วย
   categories.ts, teams.ts   ข้อมูลตัวอย่าง
+  menus.tsx                 เมนูของแต่ละโรล (ตาม Figma)
 ```
 
 ## ลำดับการทำงานของคำขอ

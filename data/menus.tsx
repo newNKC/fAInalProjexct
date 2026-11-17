@@ -3,32 +3,54 @@ import {
     Plus, Shield1Check, UserMultiple1, UserMultiple4,
 } from "@tailgrids/icons";
 import type { MenuItem } from "@/components/sidebar";
-import type { Role } from "@/data/users";
+import { deptKind } from "@/data/requests";
+import type { Role, User } from "@/data/users";
 
-// เมนูของแต่ละโรล · คนที่มีหลายโรลจะเห็นเมนูของทุกโรลต่อกันใน sidebar (แยกหัวข้อตามโรล)
-export const roleMenus: Record<Role, MenuItem[]> = {
-    requester: [
-        { href: "/requests", label: "คำขอของฉัน", icon: <FileTextMultiple /> },
-        { href: "/requests/new", label: "สร้างคำขอ", icon: <Plus /> },
-    ],
-    approver: [
-        { href: "/approvals", label: "พิจารณาคำขอ", icon: <CheckCircle1 /> },
-    ],
-    head: [
-        { href: "/incoming", label: "คำขอเข้าแผนก", icon: <LetterBox /> },
-        { href: "/workload", label: "ภาระงานทีม", icon: <UserMultiple4 /> },
-    ],
-    assignee: [
-        { href: "/tasks", label: "งานของฉัน", icon: <DoubleCheckMark /> },
-    ],
-    executive: [
-        { href: "/dashboard", label: "Dashboard", icon: <DashboardSquare1 /> },
-    ],
-    admin: [
-        { href: "/admin/dashboard", label: "Dashboard", icon: <DashboardSquare1 /> },
-        { href: "/admin/users", label: "จัดการผู้ใช้", icon: <UserMultiple1 /> },
-        { href: "/admin/categories", label: "หมวดคำขอ", icon: <Bookmark1 /> },
-        { href: "/admin/permissions", label: "สิทธิ์โรล", icon: <Shield1Check /> },
-        { href: "/admin/teams", label: "ทีม", icon: <UserMultiple4 /> },
-    ],
+// เมนูทั้งหมดในระบบ (ตาม Figma) · perm = รหัสสิทธิ์ในหน้า "สิทธิ์โรล" ที่ต้องมีจึงเห็นเมนูนี้
+type MenuDef = { href: string, label: (u: User) => string, icon: MenuItem["icon"], perm?: string }
+
+const M: Record<string, MenuDef> = {
+    approvals: { href: "/approvals", label: () => "รออนุมัติ", icon: <CheckCircle1 />, perm: "approve" },
+    incoming: { href: "/incoming", label: () => "คำขอเข้าแผนก", icon: <LetterBox />, perm: "decide" },
+    tasks: { href: "/tasks", label: () => "งานของฉัน", icon: <DoubleCheckMark />, perm: "progress" },
+    // ผู้ขออย่างเดียวเห็น "คำขอของฉัน" · โรลอื่นเห็น "คำขอในฝ่าย/แผนก" (หน้าเดียวกัน แสดงคำขอของทุกคนในฝ่าย)
+    requests: { href: "/requests", label: (u) => u.roles.length === 1 && u.roles[0] === "requester" ? "คำขอของฉัน" : `คำขอใน${deptKind(u.dept)}`, icon: <FileTextMultiple /> },
+    newRequest: { href: "/requests/new", label: () => "ส่งคำขอใหม่", icon: <Plus />, perm: "submit" },
+    teams: { href: "/teams", label: () => "ทีม", icon: <UserMultiple4 />, perm: "teams" },
+    dashboard: { href: "/dashboard", label: () => "Dashboard", icon: <DashboardSquare1 />, perm: "dashboard" },
+    users: { href: "/admin/users", label: () => "จัดการผู้ใช้", icon: <UserMultiple1 />, perm: "users" },
+    categories: { href: "/admin/categories", label: () => "หมวดคำขอ", icon: <Bookmark1 />, perm: "categories" },
+    permissions: { href: "/admin/permissions", label: () => "สิทธิ์โรล", icon: <Shield1Check /> },
 };
+
+// เมนูของแต่ละโรล (ลำดับตาม Figma)
+export const roleMenus: Record<Role, MenuDef[]> = {
+    requester: [M.requests, M.newRequest],
+    approver: [M.approvals, M.requests, M.newRequest, M.dashboard],
+    head: [M.incoming, M.requests, M.newRequest, M.teams, M.dashboard],
+    assignee: [M.tasks, M.requests, M.newRequest],
+    executive: [M.dashboard],
+    admin: [M.dashboard, M.users, M.categories, M.teams, M.permissions],
+};
+
+// ลำดับเมนูเมื่อคนหนึ่งมีหลายโรล: งานที่รอทำก่อน → คำขอ → ภาพรวม → เมนูผู้ดูแลระบบ
+const order = [M.approvals, M.incoming, M.tasks, M.requests, M.newRequest, M.teams, M.dashboard, M.users, M.categories, M.permissions].map((m) => m.href);
+
+// รวมเมนูของทุกโรลที่ผู้ใช้มี (ไม่ซ้ำ) · ซ่อนเมนูที่ผู้ดูแลระบบปิดสิทธิ์ไว้
+export function menuFor(user: User, hasPerm: (perm: string, roles: Role[]) => boolean): MenuItem[] {
+    const defs = new Map<string, { def: MenuDef, roles: Role[] }>();
+    for (const role of user.roles) {
+        for (const def of roleMenus[role]) {
+            const e = defs.get(def.href) ?? { def, roles: [] };
+            e.roles.push(role);
+            defs.set(def.href, e);
+        }
+    }
+    // ผู้ดูแลระบบอย่างเดียว ใช้ลำดับตาม Figma ของผู้ดูแลระบบ
+    const seq = user.roles.length === 1 ? roleMenus[user.roles[0]].map((m) => m.href) : order;
+    return seq
+        .filter((href) => defs.has(href))
+        .map((href) => defs.get(href)!)
+        .filter(({ def, roles }) => !def.perm || hasPerm(def.perm, roles))
+        .map(({ def }) => ({ href: def.href, label: def.label(user), icon: def.icon }));
+}
