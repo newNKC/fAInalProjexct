@@ -17,6 +17,7 @@ export type MenuItem = {
     label: string
     icon: ReactNode
     count?: number
+    section?: string   // หัวข้อกลุ่มเมนู (ใช้ตอนผู้ใช้มีหลายโรล เช่น "ผู้ขอ", "หัวหน้าต้นสังกัด")
 }
 
 // ชนิดข้อมูลของผู้ใช้ที่แสดงด้านล่าง
@@ -32,6 +33,11 @@ const itemBase = "w-full justify-start gap-3 px-3 [&>svg]:size-[18px] focus:ring
 export default function Sidebar({ menu, user }: { menu: MenuItem[], user: SidebarUser }) {
     const pathname = usePathname();
 
+    // เมนูที่ตรงกับ URL มากที่สุด (กัน "คำขอของฉัน" กับ "สร้างคำขอ" ติดสีพร้อมกัน)
+    const activeHref = menu
+        .filter((m) => pathname === m.href || pathname.startsWith(m.href + "/"))
+        .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
     return (
         // sidebar container
         <aside className="sticky top-0 flex h-screen w-62 shrink-0 flex-col gap-1 bg-sidebar px-4 py-6">
@@ -44,14 +50,17 @@ export default function Sidebar({ menu, user }: { menu: MenuItem[], user: Sideba
                 </div>
             </div>
 
-            <p className="px-2 pb-1 text-xs font-semibold text-sidebar-ink">เมนู</p>
+            {!menu[0]?.section && <p className="px-2 pb-1 text-xs font-semibold text-sidebar-ink">เมนู</p>}
 
             {/* menu */}
-            <nav className="flex flex-col gap-1">
-                {menu.map((item) => {
-                    const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            <nav className="flex flex-col gap-1 overflow-y-auto">
+                {menu.map((item, i) => {
+                    const active = item.href === activeHref;
+                    const newSection = item.section && item.section !== menu[i - 1]?.section;
                     return (
-                        <Link key={item.href} href={item.href}
+                        <div key={item.href} className="contents">
+                        {newSection && <p className={cn("px-2 pb-1 text-xs font-semibold text-sidebar-ink", i > 0 && "pt-3")}>{item.section}</p>}
+                        <Link href={item.href}
                             className={cn(
                                 buttonStyles({ variant: active ? "primary" : "ghost", appearance: "fill", size: "sm" }),
                                 itemBase,
@@ -60,9 +69,9 @@ export default function Sidebar({ menu, user }: { menu: MenuItem[], user: Sideba
                         >
                             {item.icon}
                             <span className="flex-1">{item.label}</span>
-                            {/* fix when fusion: ยังไม่มีใครส่ง count มา → ใส่จำนวนงานที่รออยู่ (รออนุมัติ, คำขอเข้าแผนก, งานของฉัน) เมื่อมีข้อมูลกลาง */}
                             {item.count ? <Badge size="sm" className="bg-brand text-white">{item.count}</Badge> : null}
                         </Link>
+                        </div>
                     );
                 })}
             </nav>

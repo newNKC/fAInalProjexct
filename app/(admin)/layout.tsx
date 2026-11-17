@@ -1,21 +1,11 @@
 import { Suspense } from "react";
-import { Bookmark1, DashboardSquare1, Shield1Check, UserMultiple1, UserMultiple4 } from "@tailgrids/icons";
 import RoleShell from "@/components/role-shell";
-import type { MenuItem } from "@/components/sidebar";
 
-// เมนูของผู้ดูแลระบบ
-const menu: MenuItem[] = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: <DashboardSquare1 /> },
-    { href: "/admin/users", label: "จัดการผู้ใช้", icon: <UserMultiple1 /> },
-    { href: "/admin/categories", label: "หมวดคำขอ", icon: <Bookmark1 /> },
-    { href: "/admin/permissions", label: "สิทธิ์โรล", icon: <Shield1Check /> },
-    { href: "/admin/teams", label: "ทีม", icon: <UserMultiple4 /> },
-];
-
+// หน้าในกลุ่มนี้เข้าได้เฉพาะคนที่มีโรล admin · เมนูอยู่ใน data/menus.tsx
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense>
-            <RoleShell role="admin" menu={menu}>{children}</RoleShell>
+            <RoleShell role="admin">{children}</RoleShell>
         </Suspense>
     )
 }

@@ -27,7 +27,7 @@ npm run dev
 | executive.mgmt | ประภาพร | ผู้บริหาร | /dashboard |
 | admin.it | นิด | ผู้ดูแลระบบ | /admin/dashboard |
 
-คนที่มีหลายโรลสลับโรลได้จากแถบ "สลับโรล" ด้านบนของหน้า
+คนที่มีหลายโรลจะเห็นเมนูของทุกโรลใน sidebar แยกหัวข้อตามโรล ไม่ต้องสลับโรล (เมนูอยู่ใน `data/menus.tsx`)
 
 ถ้าอยากล้างข้อมูลกลับเป็นค่าเริ่มต้น: เปิด DevTools → Application → Local Storage → ลบ `rq-data-v2`
 

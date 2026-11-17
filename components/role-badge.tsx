@@ -21,7 +21,7 @@ const roleBadgeStyles = cva(
 );
 
 // ② ข้อความภาษาไทยของแต่ละโรล
-const ROLE_LABEL = {
+export const ROLE_LABEL = {
     requester: "ผู้ขอ",
     approver: "หัวหน้าต้นสังกัด",
     head: "หัวหน้าแผนกปลายทาง",

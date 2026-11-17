@@ -1,17 +1,11 @@
 import { Suspense } from "react";
-import { DoubleCheckMark } from "@tailgrids/icons";
 import RoleShell from "@/components/role-shell";
-import type { MenuItem } from "@/components/sidebar";
 
-// เมนูของผู้รับงาน
-const menu: MenuItem[] = [
-    { href: "/tasks", label: "งานของฉัน", icon: <DoubleCheckMark /> },
-];
-
+// หน้าในกลุ่มนี้เข้าได้เฉพาะคนที่มีโรล assignee · เมนูอยู่ใน data/menus.tsx
 export default function AssigneeLayout({ children }: { children: React.ReactNode }) {
     return (
         <Suspense>
-            <RoleShell role="assignee" menu={menu}>{children}</RoleShell>
+            <RoleShell role="assignee">{children}</RoleShell>
         </Suspense>
     )
 }

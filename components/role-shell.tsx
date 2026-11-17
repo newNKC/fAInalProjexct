@@ -1,17 +1,18 @@
 'use client'
 
 // โครงหน้าของทุกโรล: ตรวจว่าเข้าสู่ระบบแล้วและมีโรลนี้จริง แล้วแสดง Sidebar + เนื้อหา
-// layout ของแต่ละกลุ่ม (requester), (approver), ... ส่ง role และ menu เข้ามา
+// layout ของแต่ละกลุ่ม (requester), (approver), ... ส่งแค่ role ของกลุ่มนั้นเข้ามา
+// เมนูใน sidebar รวมเมนูของทุกโรลที่ผู้ใช้มี (ไม่ต้องสลับโรล)
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import Sidebar, { type MenuItem } from "@/components/sidebar";
-import RoleBadge from "@/components/role-badge";
+import RoleBadge, { ROLE_LABEL } from "@/components/role-badge";
+import { roleMenus } from "@/data/menus";
 import { canApprove, roleHome } from "@/data/requests";
 import { useStore } from "@/data/store";
 import { allRoles, type Role } from "@/data/users";
-import { cn } from "@/utils/cn";
 
 // เมนูไหนต้องใช้สิทธิ์ข้อไหน (ผู้ดูแลระบบปิดสิทธิ์ในหน้า "สิทธิ์โรล" แล้วเมนูจะหายไป)
 const menuPermission: Record<string, string> = {
@@ -23,20 +24,15 @@ const menuPermission: Record<string, string> = {
     "/admin/teams": "teams",
 };
 
-export default function RoleShell({ role, menu, children }: { role: Role, menu: MenuItem[], children: ReactNode }) {
+export default function RoleShell({ role, children }: { role: Role, children: ReactNode }) {
     const store = useStore();
     const router = useRouter();
-    const { ready, user, session } = store;
+    const { ready, user } = store;
 
     // ยังไม่เข้าสู่ระบบ → ไปหน้า login
     useEffect(() => {
         if (ready && !user) router.replace("/login");
     }, [ready, user, router]);
-
-    // เปิด URL ของโรลอื่นที่ตัวเองมี → สลับโรลให้อัตโนมัติ
-    useEffect(() => {
-        if (user && user.roles.includes(role) && session?.role !== role) store.switchRole(role);
-    }, [user, role, session, store]);
 
     if (!ready || !user) {
         return <div className="flex min-h-screen items-center justify-center bg-page text-sm text-ink-3">กำลังโหลด...</div>
@@ -62,33 +58,20 @@ export default function RoleShell({ role, menu, children }: { role: Role, menu: 
             && store.requests.find((r) => r.id === t.requestId)?.status === "in_progress").length,
     };
 
-    const shownMenu = menu
+    // รวมเมนูของทุกโรลที่มี (เรียงตามลำดับโรล) · มีหลายโรลจะแยกหัวข้อตามชื่อโรล
+    const myRoles = allRoles.filter((r) => user.roles.includes(r));
+    const menu: MenuItem[] = myRoles.flatMap((r) => roleMenus[r]
         .filter((m) => {
             const pid = menuPermission[m.href];
-            return !pid || store.permissions.find((p) => p.id === pid)?.roles.includes(role);
+            return !pid || store.permissions.find((p) => p.id === pid)?.roles.includes(r);
         })
-        .map((m) => ({ ...m, count: counts[m.href] || undefined }));
-
-    const otherRoles = allRoles.filter((r) => user.roles.includes(r));
+        .map((m) => ({ ...m, count: counts[m.href] || undefined, section: myRoles.length > 1 ? ROLE_LABEL[r] : undefined }))
+    );
 
     return (
         <div className="flex min-h-screen bg-page">
-            <Sidebar menu={shownMenu} user={{ name: user.name, position: user.position, role }} />
-            <main className="min-w-0 flex-1 px-8 pt-6 pb-12">
-                {/* สลับโรล (แสดงเฉพาะคนที่มีหลายโรล) */}
-                {otherRoles.length > 1 && (
-                    <div className="mb-5 flex items-center gap-2 text-xs text-ink-2">
-                        <span>สลับโรล:</span>
-                        {otherRoles.map((r) => (
-                            <Link key={r} href={roleHome[r]}
-                                className={cn("rounded-md ring-offset-2", r === role ? "ring-2 ring-brand" : "opacity-70 hover:opacity-100")}>
-                                <RoleBadge role={r} />
-                            </Link>
-                        ))}
-                    </div>
-                )}
-                {children}
-            </main>
+            <Sidebar menu={menu} user={{ name: user.name, position: user.position, role: myRoles[0] }} />
+            <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
         </div>
     )
 }
