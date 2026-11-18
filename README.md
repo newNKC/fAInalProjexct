@@ -54,6 +54,7 @@ app/
                             account (บัญชีของฉัน / เปลี่ยนรหัสผ่าน)
   (approver)/               หัวหน้าต้นสังกัด: approvals, approvals/[id]
   (head)/                   หัวหน้าแผนกปลายทาง: incoming, incoming/[id]/plan, incoming/[id]/decline
+                            (incoming/dept = คำขอในแผนก อยู่ในกลุ่ม (app) เพราะผู้รับงานใช้ด้วย)
   (assignee)/               ผู้รับงาน: tasks
   (admin)/                  ผู้ดูแลระบบ: admin/users, admin/categories, admin/permissions
 components/
@@ -65,6 +66,8 @@ components/
   sort-table.tsx, sort-select.tsx     ตาราง/รายการที่เรียงตามหัวข้อได้
   status-badge.tsx, category-badge.tsx, stat-card.tsx, banner.tsx, inbox-card.tsx,
   progress-bar.tsx, filter-chips.tsx, reason-dialog.tsx, action-items.ts
+  request-ui/                         ชุดคอมโพเนนต์หน้าจอของนพรัตน์ (RequestUI, CategoryTag, StatusTag, CategoryFilter,
+                                      LinkButton) + DataTable, ProgressCell, RequestListPage, RequestSummaryCard
   tailgrids/core/                     คอมโพเนนต์ของ TailGrids (ไม่แก้)
 data/
   store.tsx                 ข้อมูลกลาง (Context + localStorage) ทุกหน้าใช้ useStore()
@@ -80,3 +83,14 @@ data/
 
 รออนุมัติ → (ส่งกลับแก้ไข) → รอแผนกปลายทาง → (ปฏิเสธ / ส่งต่อแผนกอื่น) → กำลังดำเนินการ → รอตรวจรับ (อัตโนมัติเมื่องานครบ 100%) → เสร็จสิ้น
 ทุกการเปลี่ยนสถานะบันทึกในประวัติคำขอ และการส่งกลับ ปฏิเสธ ส่งต่อ ขอแก้ ต้องกรอกเหตุผล
+
+## ใครทำหน้าไหน
+
+| หน้า | ผู้ออกแบบหน้าจอ |
+| --- | --- |
+| รอการอนุมัติ, พิจารณาคำขอ, คำขอในฝ่าย, คำขอเข้าแผนก, รับงานและแบ่งงาน, ส่งต่อ/ปฏิเสธ, คำขอในแผนก | นพรัตน์ (repo final-project-23-kong-) |
+| Dashboard, งานของฉัน, ทีม, หมวดคำขอ | พิชญ์ (repo Project-Pich-) |
+| เข้าสู่ระบบ, ส่งคำขอ, รายละเอียดคำขอ, บัญชีของฉัน, จัดการผู้ใช้, สิทธิ์โรล, ข้อมูลกลาง (store) | ณดล |
+
+หน้าของนพรัตน์และพิชญ์ถูกนำมาต่อกับข้อมูลกลาง (`useStore()`) แทนข้อมูลตัวอย่างเดิม และเติมส่วนที่ requirement ต้องการ
+(แตกงานแก้ไขได้จริง, ชิปช่วงเวลากรองข้อมูลจริง, ตารางเรียงได้, ความคืบหน้าแก้ได้เฉพาะผู้รับงาน) — รายละเอียดอยู่ในคอมเมนต์ต้นไฟล์ของแต่ละหน้า

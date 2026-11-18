@@ -1,91 +1,109 @@
 'use client'
 
+// พิจารณาคำขอ (งานของนพรัตน์ เดิม approvalsView/page.tsx + ApprovalDecisionPanel)
+// ปรับให้ใช้ข้อมูลจริง: อนุมัติ/ส่งกลับเรียก store (คำขอไปต่อจริง) · ชื่อแผนกปลายทางตามคำขอ (ไม่ fix แผนก IT)
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, CheckCircle1, InfoCircle, Reply } from "@tailgrids/icons";
-import { Button } from "@/components/tailgrids/core/button";
+import { ArrowLeft, Check } from "@tailgrids/icons";
 import { Checkbox } from "@/components/tailgrids/core/checkbox";
-import Banner from "@/components/banner";
-import PageHeader from "@/components/page-header";
-import { Card, RequestHistory, RequestSummary } from "@/components/request-parts";
-import { fieldClass } from "@/components/request-form";
+import { Label } from "@/components/tailgrids/core/label";
+import { Button, Card, Field, PageHeader } from "@/components/request-ui/RequestUI";
+import RequestSummaryCard from "@/components/request-ui/RequestSummaryCard";
 import { NoAccess } from "@/components/role-shell";
 import { canApprove, findHead, nick } from "@/data/requests";
 import { useStore } from "@/data/store";
 
-// พิจารณาคำขอ (หัวหน้าต้นสังกัด · ด่านที่ 1 จาก 2)
-export default function Page() {
-    const { id } = useParams<{ id: string }>();
-    const store = useStore();
-    const router = useRouter();
-    const user = store.user!;
-    const [checks, setChecks] = useState([false, false, false]);
-    const [mode, setMode] = useState<"review" | "return">("review");
-    const [reason, setReason] = useState("");
+export default function ApprovalsViewPage() {
+  const { id } = useParams<{ id: string }>();
+  const store = useStore();
+  const request = store.requests.find((r) => r.id === Number(id));
+  // ไม่ใช่คำขอที่รอคนนี้อนุมัติ (หรือพิจารณาไปแล้ว) → แจ้งแทนหน้า 404
+  if (!request || !canApprove(store.users, store.user!, request)) {
+    return <NoAccess text="คำขอนี้ไม่ได้รอคุณอนุมัติ (อาจถูกพิจารณาไปแล้ว)" />;
+  }
 
-    const r = store.requests.find((x) => x.id === Number(id));
-    if (!r || !canApprove(store.users, user, r)) return <NoAccess text="คำขอนี้ไม่ได้รอคุณอนุมัติ (อาจถูกพิจารณาไปแล้ว)" />;
+  return (
+    <>
+      <PageHeader title="พิจารณาคำขอ" sub={request.code} back="กลับไปรอการอนุมัติ" backHref="/approvals" />
+      <div className="split-layout">
+        {/* ฝั่งซ้ายแสดงข้อมูลคำขอ ส่วนฝั่งขวาเป็นปุ่มให้เลือกผลพิจารณา */}
+        <RequestSummaryCard r={request} />
+        <ApprovalDecisionPanel requestId={request.id} />
+      </div>
+    </>
+  );
+}
 
-    const head = findHead(store.users, r.targetDept);
-    const items = ["รายละเอียดตรงกับที่คุยกันไว้", `ส่งถึงแผนกที่ถูกต้อง (${r.targetDept})`, "แนบไฟล์ที่จำเป็นครบ"];
+function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
+  const router = useRouter();
+  const store = useStore();
+  const request = store.requests.find((r) => r.id === requestId)!;
+  const head = findHead(store.users, request.targetDept);
+  const [isReturning, setIsReturning] = useState(false);
+  const [comment, setComment] = useState("");
 
-    const approve = () => {
-        store.approve(r.id);
-        store.showToast(`อนุมัติ ${r.code} แล้ว · ส่งต่อให้หัวหน้า${r.targetDept}`);
-        router.push("/approvals");
-    }
-    const sendBack = (e?: FormEvent) => {
-        e?.preventDefault();
-        if (!reason.trim()) return;
-        store.returnRequest(r.id, reason.trim());
-        store.showToast(`ส่ง ${r.code} กลับให้ ${nick(store.userById(r.requesterId)?.name)} แก้ไขแล้ว`);
-        router.push("/approvals");
-    }
+  const approveRequest = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    store.approve(requestId);
+    store.showToast(`อนุมัติ ${request.code} แล้ว · ส่งต่อให้หัวหน้า${request.targetDept}`);
+    router.push("/approvals");
+  };
 
-    return (
-        <>
-            <PageHeader title={`พิจารณาคำขอ ${r.code}`} back={{ href: "/approvals", label: "กลับไปรออนุมัติ" }} />
-            <div className="grid grid-cols-[1fr_22rem] items-start gap-6">
-                <div className="flex flex-col gap-4">
-                    <RequestSummary r={r} />
-                    <RequestHistory r={r} />
-                </div>
-                <div className="flex flex-col gap-4">
-                    <Card title="การพิจารณาของหัวหน้าต้นสังกัด" hint="ด่านที่ 1 จาก 2">
-                        {mode === "review" ? (
-                            <>
-                                <p className="mb-2 text-sm font-semibold text-ink">ตรวจก่อนอนุมัติ</p>
-                                <div className="flex flex-col gap-2.5">
-                                    {items.map((t, i) => (
-                                        <div key={t} className="flex items-center gap-2.5 text-sm text-ink">
-                                            <Checkbox id={`chk-${i}`} checked={checks[i]} onChange={(e) => setChecks((c) => c.map((x, j) => j === i ? e.target.checked : x))} />
-                                            <label htmlFor={`chk-${i}`} className="cursor-pointer">{t}</label>
-                                        </div>
-                                    ))}
-                                </div>
-                                {!checks.every(Boolean) && <p className="mt-2 text-xs text-ink-3">ติ๊กให้ครบทุกข้อก่อนอนุมัติ</p>}
-                                <div className="mt-4 flex flex-col gap-2">
-                                    <Button size="sm" variant="success" disabled={!checks.every(Boolean)} onPress={approve}><CheckCircle1 />อนุมัติและส่งต่อ{r.targetDept}</Button>
-                                    <Button size="sm" appearance="outline" onPress={() => setMode("return")}><Reply />ส่งกลับให้แก้ไข</Button>
-                                </div>
-                            </>
-                        ) : (
-                            <form onSubmit={sendBack}>
-                                <button type="button" onClick={() => setMode("review")} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-2 hover:text-brand"><ArrowLeft className="size-4" />กลับไปพิจารณา</button>
-                                <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">เหตุผลที่ส่งกลับ *
-                                    <textarea autoFocus required aria-label="เหตุผลที่ส่งกลับ" rows={4} className={fieldClass} value={reason} onChange={(e) => setReason(e.target.value)}
-                                        placeholder="บอกผู้ขอว่าต้องแก้หรือเพิ่มอะไร" />
-                                </label>
-                                <div className="mt-4 flex justify-end gap-2">
-                                    <Button size="sm" type="button" appearance="outline" onPress={() => { setMode("review"); setReason(""); }}>ยกเลิก</Button>
-                                    <Button size="sm" type="submit" variant="danger" disabled={!reason.trim()}>ยืนยันส่งกลับ</Button>
-                                </div>
-                            </form>
-                        )}
-                    </Card>
-                    <Banner tone="info" icon={<InfoCircle />}>อนุมัติแล้วคำขอไปที่หัวหน้า{r.targetDept} ({head ? nick(head.name) : "-"})</Banner>
-                </div>
+  const returnRequest = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!comment.trim()) return;
+    store.returnRequest(requestId, comment.trim());
+    store.showToast(`ส่ง ${request.code} กลับให้ ${nick(store.userById(request.requesterId)?.name)} แก้ไขแล้ว`);
+    router.push("/approvals");
+  };
+
+  return (
+    <Card className="h-fit">
+      {isReturning ? (
+        <form onSubmit={returnRequest} className="space-y-4">
+          <button type="button" onClick={() => setIsReturning(false)} className="page-head__back">‹ กลับไปพิจารณา</button>
+          <h3 className="font-semibold">ระบุข้อความที่ต้องการให้แก้ไข</h3>
+          <Field label="รายละเอียดที่ต้องแก้ไข *">
+            <textarea value={comment} onChange={(event) => setComment(event.target.value)} rows={4} className="input"
+              placeholder="ระบุเหตุผลหรือรายละเอียดที่ต้องแก้ไข" required autoFocus />
+          </Field>
+          <Button type="submit" variant="danger" block>
+            <ArrowLeft size={18} aria-hidden="true" />
+            ยืนยันส่งกลับให้แก้ไข
+          </Button>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <form onSubmit={approveRequest} className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold">การพิจารณาของหัวหน้าต้นสังกัด</h3>
+              <fieldset className="space-y-3">
+                <legend className="mb-2 text-xs text-slate-500">ด่าน 1 จาก 2 ไม่ต้องขอผู้บริหารอนุมัติ</legend>
+                <h3 className="font-semibold">ตรวจก่อนอนุมัติ</h3>
+                {[
+                  ["confirmDetails", "รายละเอียดตรงกับที่คุยกันไว้"],
+                  ["confirmDepartment", `ส่งถึงแผนกที่ถูกต้อง (${request.targetDept})`],
+                  ["confirmAttachments", "แนบไฟล์ที่จำเป็นครบ"],
+                ].map(([key, text]) => (
+                  <div key={key} className="flex items-start gap-3 rounded-lg border border-line p-3">
+                    <Checkbox id={key} name={key} required size="md" className="mt-1" />
+                    <Label htmlFor={key}>{text}</Label>
+                  </div>
+                ))}
+              </fieldset>
             </div>
-        </>
-    )
+            <Button type="submit" variant="success" block>
+              <Check size={18} aria-hidden="true" />
+              อนุมัติและส่งต่อ{request.targetDept}
+            </Button>
+          </form>
+          <Button type="button" variant="danger" block onPress={() => setIsReturning(true)}>
+            <ArrowLeft size={18} aria-hidden="true" />
+            ส่งกลับให้แก้ไข
+          </Button>
+          <p className="text-xs text-slate-500">อนุมัติแล้วคำขอไปที่หัวหน้า{request.targetDept} ({head ? nick(head.name) : "-"})</p>
+        </div>
+      )}
+    </Card>
+  );
 }

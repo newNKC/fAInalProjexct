@@ -52,7 +52,7 @@ export default function PageHeader({ title, back, subtitle, actions }: Props) {
 }
 
 // ช่องค้นหารหัสหรือชื่อคำขอ (ค้นเฉพาะคำขอที่ผู้ใช้มีสิทธิ์ดู) · ↑↓ เลือก, Enter เปิด, Esc ปิด
-function GlobalSearch() {
+export function GlobalSearch() {
     const store = useStore();
     const router = useRouter();
     const [q, setQ] = useState("");
@@ -96,7 +96,7 @@ function GlobalSearch() {
 }
 
 // กระดิ่ง: งานที่รอผู้ใช้คนนี้ทำ
-function NotificationBell() {
+export function NotificationBell() {
     const store = useStore();
     const [open, setOpen] = useState(false);
     const items = actionItems(store);

@@ -14,7 +14,11 @@ const M: Record<string, MenuDef> = {
     incoming: { href: "/incoming", label: () => "คำขอเข้าแผนก", icon: <LetterBox />, perm: "decide" },
     tasks: { href: "/tasks", label: () => "งานของฉัน", icon: <DoubleCheckMark />, perm: "progress" },
     // ผู้ขออย่างเดียวเห็น "คำขอของฉัน" · โรลอื่นเห็น "คำขอในฝ่าย/แผนก" (หน้าเดียวกัน แสดงคำขอของทุกคนในฝ่าย)
-    requests: { href: "/requests", label: (u) => u.roles.length === 1 && u.roles[0] === "requester" ? "คำขอของฉัน" : `คำขอใน${deptKind(u.dept)}`, icon: <FileTextMultiple /> },
+    // หัวหน้าต้นสังกัดเห็น "คำขอในฝ่าย" (คำขอที่คนในฝ่ายส่ง) · โรลอื่นเห็น "คำขอของฉัน" (หน้าเดียวกัน)
+    // (หัวหน้าต้นสังกัดที่เป็นหัวหน้าแผนกปลายทางด้วย ใช้ "คำขอที่แผนกส่ง" เพื่อไม่ให้ชนกับเมนู "คำขอในแผนก")
+    requests: { href: "/requests", label: (u) => !u.roles.includes("approver") ? "คำขอของฉัน" : u.roles.includes("head") ? `คำขอที่${deptKind(u.dept)}ส่ง` : `คำขอใน${deptKind(u.dept)}`, icon: <FileTextMultiple /> },
+    // งานที่ส่งเข้าแผนก (หัวหน้าแผนก / ผู้รับงาน)
+    deptRequests: { href: "/incoming/dept", label: () => "คำขอในแผนก", icon: <FileTextMultiple /> },
     newRequest: { href: "/requests/new", label: () => "ส่งคำขอใหม่", icon: <Plus />, perm: "submit" },
     teams: { href: "/teams", label: () => "ทีม", icon: <UserMultiple4 />, perm: "teams" },
     dashboard: { href: "/dashboard", label: () => "Dashboard", icon: <DashboardSquare1 />, perm: "dashboard" },
@@ -27,14 +31,14 @@ const M: Record<string, MenuDef> = {
 export const roleMenus: Record<Role, MenuDef[]> = {
     requester: [M.requests, M.newRequest],
     approver: [M.approvals, M.requests, M.newRequest, M.dashboard],
-    head: [M.incoming, M.requests, M.newRequest, M.teams, M.dashboard],
-    assignee: [M.tasks, M.requests, M.newRequest],
+    head: [M.incoming, M.deptRequests, M.requests, M.newRequest, M.teams, M.dashboard],
+    assignee: [M.tasks, M.deptRequests, M.requests, M.newRequest],
     executive: [M.dashboard],
     admin: [M.dashboard, M.users, M.categories, M.teams, M.permissions],
 };
 
 // ลำดับเมนูเมื่อคนหนึ่งมีหลายโรล: งานที่รอทำก่อน → คำขอ → ภาพรวม → เมนูผู้ดูแลระบบ
-const order = [M.approvals, M.incoming, M.tasks, M.requests, M.newRequest, M.teams, M.dashboard, M.users, M.categories, M.permissions].map((m) => m.href);
+const order = [M.approvals, M.incoming, M.tasks, M.deptRequests, M.requests, M.newRequest, M.teams, M.dashboard, M.users, M.categories, M.permissions].map((m) => m.href);
 
 // รวมเมนูของทุกโรลที่ผู้ใช้มี (ไม่ซ้ำ) · ซ่อนเมนูที่ผู้ดูแลระบบปิดสิทธิ์ไว้
 export function menuFor(user: User, hasPerm: (perm: string, roles: Role[]) => boolean): MenuItem[] {
