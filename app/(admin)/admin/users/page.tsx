@@ -7,9 +7,11 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Dialog, DialogBody, DialogClose, DialogFooter, DialogHeader, DialogTitle } from "@/components/tailgrids/core/dialog";
 import { Input } from "@/components/tailgrids/core/input";
 import { Backdrop } from "@/components/tailgrids/core/overlay";
+import ConfirmDialog from "@/components/confirm-dialog";
 import PageHeader from "@/components/page-header";
 import RoleBadge from "@/components/role-badge";
 import SortTable from "@/components/sort-table";
+import { thaiDateTime } from "@/data/requests";
 import { useStore } from "@/data/store";
 import { allRoles, type Role, type User } from "@/data/users";
 import { cn } from "@/utils/cn";
@@ -26,6 +28,18 @@ export default function Page() {
     const [dept, setDept] = useState("ทุกแผนก");
     const [editing, setEditing] = useState<User | null>(null);   // คนที่กำลังแก้โรล (null = ปิด dialog)
     const [draftRoles, setDraftRoles] = useState<Role[]>([]);    // โรลที่ติ๊กอยู่ใน dialog
+    const [resetting, setResetting] = useState<User | null>(null);   // ยืนยันรีเซ็ตรหัสผ่าน
+    const [temp, setTemp] = useState<{ user: User, password: string } | null>(null);   // รหัสชั่วคราว (แสดงครั้งเดียว)
+    const [copied, setCopied] = useState(false);
+
+    // สถานะบัญชี: ล็อกอยู่ / รอตั้งรหัสใหม่ / ยังไม่มีรหัสผ่าน / ปกติ
+    const account = (u: User) => {
+        const c = store.credentialOf(u.id);
+        if (!c) return { label: "ยังไม่มีรหัสผ่าน", cls: "bg-[#F1F5F9] text-[#475569]", rank: 1, locked: false };
+        if (c.lockedUntil) return { label: `ล็อกถึง ${thaiDateTime(c.lockedUntil)}`, cls: "bg-[#FFE4E6] text-[#BE123C]", rank: 0, locked: true };
+        if (c.mustChange) return { label: "รอตั้งรหัสใหม่", cls: "bg-[#FEF3C7] text-[#92400E]", rank: 2, locked: false };
+        return { label: "ใช้งานได้", cls: "bg-[#D1FAE5] text-[#047857]", rank: 3, locked: false };
+    }
 
     // กรองตามแผนก + คำค้นหา
     const shown = users.filter((u) =>
@@ -105,14 +119,55 @@ export default function Page() {
                     ),
                 },
                 {
+                    key: "account", label: "บัญชี", sortValue: (u) => account(u).rank, render: (u) => (
+                        <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", account(u).cls)}>{account(u).label}</span>
+                    ),
+                },
+                {
                     key: "edit", label: "", className: "text-right", render: (u) => (
-                        <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "ml-auto text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
-                            onClick={() => openEdit(u)}>
-                            <Pencil1 />แก้โรล
-                        </button>
+                        <div className="flex justify-end gap-1">
+                            {account(u).locked && (
+                                <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft [&>svg]:size-4")}
+                                    onClick={() => { store.unlockUser(u.id); store.showToast(`ปลดล็อกบัญชี ${u.name} แล้ว`); }}>ปลดล็อก</button>
+                            )}
+                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
+                                onClick={() => setResetting(u)}>
+                                <Locked3 />รีเซ็ตรหัสผ่าน
+                            </button>
+                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
+                                onClick={() => openEdit(u)}>
+                                <Pencil1 />แก้โรล
+                            </button>
+                        </div>
                     ),
                 },
             ]} />
+
+            {/* รีเซ็ตรหัสผ่าน: ยืนยัน → แสดงรหัสชั่วคราวครั้งเดียว */}
+            <ConfirmDialog open={!!resetting} title={`รีเซ็ตรหัสผ่านของ ${resetting?.name}?`} confirmLabel="รีเซ็ตรหัสผ่าน" danger
+                onClose={() => setResetting(null)}
+                onConfirm={async () => {
+                    const u = resetting!;
+                    setResetting(null);
+                    setTemp({ user: u, password: await store.resetPassword(u.id) });
+                    setCopied(false);
+                }}>
+                รหัสผ่านเดิมจะใช้ไม่ได้ทันที ผู้ใช้จะได้รหัสผ่านชั่วคราวและต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบ
+            </ConfirmDialog>
+            <Backdrop isOpen={!!temp} onOpenChange={(open) => !open && setTemp(null)}>
+                <Dialog>
+                    <DialogHeader><DialogTitle>รหัสผ่านชั่วคราวของ {temp?.user.name}</DialogTitle></DialogHeader>
+                    <DialogBody className="flex flex-col gap-3 text-sm text-ink-2">
+                        <p>ส่งรหัสนี้ให้ผู้ใช้ทางช่องทางที่ปลอดภัย · ปิดหน้าต่างนี้แล้วจะดูอีกไม่ได้</p>
+                        <div className="flex items-center gap-2 rounded-lg bg-page px-3 py-2 ring-1 ring-line">
+                            <code className="flex-1 font-mono text-base font-semibold tracking-wider text-ink">{temp?.password}</code>
+                            <Button size="xs" appearance="outline" onPress={() => { navigator.clipboard?.writeText(temp?.password ?? ""); setCopied(true); }}>{copied ? "คัดลอกแล้ว" : "คัดลอก"}</Button>
+                        </div>
+                        <p className="text-xs text-ink-3">อีเมลสำหรับเข้าสู่ระบบ: {temp?.user.email}</p>
+                    </DialogBody>
+                    <DialogFooter><DialogClose>เสร็จสิ้น</DialogClose></DialogFooter>
+                </Dialog>
+            </Backdrop>
 
             {/* edit roles dialog */}
             <Backdrop isOpen={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>

@@ -88,14 +88,14 @@ export default function Sidebar({ menu, user, onLogout }: { menu: MenuItem[], us
                 ออกจากระบบ
             </Link>
 
-            {/* user box */}
-            <div className="mt-1 flex items-center gap-2.5 rounded-xl bg-sidebar-active p-3">
+            {/* user box → หน้าบัญชีของฉัน (ข้อมูลส่วนตัว / เปลี่ยนรหัสผ่าน) */}
+            <Link href="/account" title="บัญชีของฉัน" className="mt-1 flex items-center gap-2.5 rounded-xl bg-sidebar-active p-3 hover:ring-1 hover:ring-white/20">
                 <span className="flex size-8 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand-strong">{user.name.slice(0, 1)}</span>
                 <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-white">{user.name} · {user.position}</p>
                     <RoleBadge role={user.role} className="mt-1" />
                 </div>
-            </div>
+            </Link>
         </aside>
     )
 }

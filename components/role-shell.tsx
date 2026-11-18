@@ -4,8 +4,8 @@
 // เมนูใน sidebar รวมเมนูของทุกโรลที่ผู้ใช้มี (ไม่ต้องสลับโรล)
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, type ReactNode } from "react";
 import { CheckCircle1, Xmark } from "@tailgrids/icons";
 import Sidebar from "@/components/sidebar";
 import RoleBadge from "@/components/role-badge";
@@ -20,10 +20,19 @@ export default function RoleShell({ roles, children }: { roles?: Role[], childre
     const router = useRouter();
     const { ready, user } = store;
 
-    // ยังไม่เข้าสู่ระบบ → ไปหน้า login
+    const pathname = usePathname();
+    const mustChange = store.mustChangePassword;
+
+    // ยังไม่เข้าสู่ระบบ → ไปหน้า login แล้วกลับมาหน้านี้หลังเข้าสู่ระบบ
+    // ได้รหัสผ่านชั่วคราวจากผู้ดูแลระบบ → ต้องตั้งรหัสผ่านใหม่ก่อนใช้หน้าอื่น
+    // (เพิ่งกดออกจากระบบ → ไปหน้า login เฉย ๆ ไม่ต้องจำหน้าเดิม)
+    const hadUser = useRef(false);
     useEffect(() => {
-        if (ready && !user) router.replace("/login");
-    }, [ready, user, router]);
+        if (!ready) return;
+        if (user) hadUser.current = true;
+        if (!user) router.replace(hadUser.current ? "/login" : `/login?next=${encodeURIComponent(pathname)}&reason=expired`);
+        else if (mustChange && pathname !== "/account") router.replace("/account?required=1");
+    }, [ready, user, mustChange, pathname, router]);
 
     if (!ready || !user) {
         return <div className="flex min-h-screen items-center justify-center bg-page text-sm text-ink-3">กำลังโหลด...</div>
@@ -35,7 +44,7 @@ export default function RoleShell({ roles, children }: { roles?: Role[], childre
 
     return (
         <div className="flex min-h-screen bg-page">
-            <Sidebar menu={menu} user={{ name: user.name, position: user.position, role: primaryRole(user) }} onLogout={store.logout} />
+            <Sidebar menu={mustChange ? [] : menu} user={{ name: user.name, position: user.position, role: primaryRole(user) }} onLogout={store.logout} />
             <main className="min-w-0 flex-1 px-8 pt-6 pb-12">
                 {allowed ? children : <NoAccess roles={roles!} />}
             </main>

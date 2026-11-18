@@ -12,8 +12,8 @@ export type Status =
 
 export type DisplayStatus = Status | "overdue"
 
-// ไฟล์แนบ (prototype เก็บแค่ชื่อและขนาด)
-export type Attachment = { name: string, size: number }
+// ไฟล์แนบ: เก็บข้อมูลไฟล์ไว้ที่นี่ ส่วนตัวไฟล์จริงเก็บใน IndexedDB ของเบราว์เซอร์ (data/files.ts) ตาม id
+export type Attachment = { id: string, name: string, size: number, type: string }
 
 export type Request = {
     id: number
@@ -211,12 +211,6 @@ const details: Record<number, string> = {
     139: "หน้าออกใบแจ้งหนี้โหลดนานเกิน 1 นาทีเมื่อมีรายการมากกว่า 50 บรรทัด บางครั้งค้างจนต้องปิดหน้า",
 }
 
-const files: Record<number, Attachment[]> = {
-    152: [{ name: "ตัวอย่างหน้าจอ CRM.png", size: 240 * 1024 }, { name: "ฟิลด์ที่ต้องการกรอง.xlsx", size: 18 * 1024 }],
-    148: [{ name: "ตัวอย่างรายงานเดิม.xlsx", size: 56 * 1024 }, { name: "ขอบเขตงาน.pdf", size: 310 * 1024 }],
-    139: [{ name: "ภาพหน้าจอตอนค้าง.png", size: 120 * 1024 }],
-}
-
 const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5).toISOString().slice(0, 10)
 
 export const seedRequests: Request[] = rows.map(([code, title, cat, requester, status, created, due, approver], i) => ({
@@ -231,7 +225,7 @@ export const seedRequests: Request[] = rows.map(([code, title, cat, requester, s
     approverId: approver,
     teamId: [148, 135, 139].includes(code) ? 1 : null,
     status,
-    attachments: files[code] ?? [],
+    attachments: [],
     createdAt: at(created, code === 152 ? "09:40" : code === 148 ? "10:15" : code === 139 ? "13:05" : "09:00"),
 }))
 

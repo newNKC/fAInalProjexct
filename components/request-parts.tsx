@@ -3,7 +3,8 @@
 // ชิ้นส่วนที่หลายหน้าใช้ร่วมกันเมื่อแสดงคำขอ 1 รายการ
 // RequestSummary (การ์ดสรุปคำขอ) · RequestStepper (ขั้นตอนคำขอ) · RequestInfo (ข้อมูลคำขอ) · RequestHistory (ประวัติ) · MainTasks / TaskTree (งาน)
 import type { ReactNode } from "react";
-import { Eye, FileText, Paperclip2 } from "@tailgrids/icons";
+import { Download1, Eye, FileText, Paperclip2 } from "@tailgrids/icons";
+import { openFile } from "@/data/files";
 import CategoryBadge from "@/components/category-badge";
 import ProgressBar from "@/components/progress-bar";
 import StatusBadge, { STATUS_LABEL } from "@/components/status-badge";
@@ -66,12 +67,14 @@ export function RequestSummary({ r, compact }: { r: Request, compact?: boolean }
             {r.attachments.length === 0 && <p className="mt-1 text-sm text-ink-3">ไม่มีไฟล์แนบ</p>}
             <ul className="mt-2 flex flex-col gap-2">
                 {r.attachments.map((f) => (
-                    <li key={f.name} className="flex items-center gap-3 rounded-lg bg-page px-3 py-2 text-sm">
+                    <li key={f.id} className="flex items-center gap-3 rounded-lg bg-page px-3 py-2 text-sm">
                         <Paperclip2 className="size-4 text-ink-3" />
                         <span className="flex-1 truncate text-ink">{f.name}</span>
                         <span className="text-xs text-ink-3">{fmtSize(f.size)}</span>
-                        <button onClick={() => store.showToast(`เปิดดู ${f.name} (prototype ไม่ได้เก็บไฟล์จริง)`)}
+                        <button onClick={async () => { if (!await openFile(f.id, f.name)) store.showToast(`ไม่พบไฟล์ ${f.name} ในเครื่องนี้`); }}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><Eye className="size-4" />เปิดดู</button>
+                        <button onClick={async () => { if (!await openFile(f.id, f.name, true)) store.showToast(`ไม่พบไฟล์ ${f.name} ในเครื่องนี้`); }}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><Download1 className="size-4" />ดาวน์โหลด</button>
                     </li>
                 ))}
             </ul>

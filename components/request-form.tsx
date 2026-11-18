@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import Banner from "@/components/banner";
 import { Card, fmtSize } from "@/components/request-parts";
-import { findApprover, findHead, nick, todayISO } from "@/data/requests";
+import { saveFile } from "@/data/files";
+import { findApprover, findHead, nick, todayISO, type Attachment } from "@/data/requests";
 import { useStore, type RequestDraft } from "@/data/store";
 import { cn } from "@/utils/cn";
 
@@ -48,18 +49,26 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
 
     const set = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) => setDraft((d) => ({ ...d, [key]: value }));
 
-    // เพิ่มไฟล์ (ตรวจชนิดและขนาด · prototype เก็บแค่ชื่อและขนาด)
-    const addFiles = (files: FileList | null) => {
+    // เพิ่มไฟล์: ตรวจชนิดและขนาด แล้วเก็บไฟล์จริงไว้ในเบราว์เซอร์ (IndexedDB)
+    const addFiles = async (files: FileList | null) => {
         if (!files) return;
         const bad: string[] = [];
-        const ok = Array.from(files).filter((f) => {
+        const ok: Attachment[] = [];
+        for (const f of Array.from(files)) {
             const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-            if (!ALLOWED.includes(ext)) { bad.push(`${f.name} (ชนิดไฟล์ไม่รองรับ)`); return false; }
-            if (f.size > MAX_SIZE) { bad.push(`${f.name} (เกิน 10 MB)`); return false; }
-            return true;
-        }).map((f) => ({ name: f.name, size: f.size }));
+            if (!ALLOWED.includes(ext)) { bad.push(`${f.name} (ชนิดไฟล์ไม่รองรับ)`); continue; }
+            if (f.size > MAX_SIZE) { bad.push(`${f.name} (เกิน 10 MB)`); continue; }
+            if (draft.attachments.some((x) => x.name === f.name)) continue;
+            const id = crypto.randomUUID();
+            try {
+                await saveFile(id, f);
+                ok.push({ id, name: f.name, size: f.size, type: f.type });
+            } catch {
+                bad.push(`${f.name} (บันทึกไฟล์ไม่สำเร็จ)`);
+            }
+        }
         setFileError(bad.length ? `แนบไม่ได้: ${bad.join(", ")}` : "");
-        setDraft((d) => ({ ...d, attachments: [...d.attachments, ...ok.filter((a) => !d.attachments.some((x) => x.name === a.name))] }));
+        setDraft((d) => ({ ...d, attachments: [...d.attachments, ...ok] }));
     }
 
     // ตรวจทุกช่องพร้อมกัน แสดงข้อความใต้ช่องที่ผิด แล้วเลื่อนไปช่องแรกที่ผิด
@@ -148,9 +157,9 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                 {draft.attachments.length > 0 && (
                     <ul className="mt-2 flex flex-wrap gap-2">
                         {draft.attachments.map((a) => (
-                            <li key={a.name} className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-sm ring-1 ring-line">
+                            <li key={a.id} className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-sm ring-1 ring-line">
                                 <Paperclip2 className="size-4 text-ink-3" />{a.name}<span className="text-xs text-ink-3">{fmtSize(a.size)}</span>
-                                <button type="button" aria-label={`ลบ ${a.name}`} onClick={() => set("attachments", draft.attachments.filter((x) => x.name !== a.name))}><Xmark className="size-4 text-ink-3 hover:text-red-600" /></button>
+                                <button type="button" aria-label={`ลบ ${a.name}`} onClick={() => set("attachments", draft.attachments.filter((x) => x.id !== a.id))}><Xmark className="size-4 text-ink-3 hover:text-red-600" /></button>
                             </li>
                         ))}
                     </ul>
