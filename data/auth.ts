@@ -24,6 +24,12 @@ export const seedCredentials: Record<number, Credential> = {
     7: { salt: "bf4912cac019d379", hash: "274c871865dccf1a8a5935aa71f1a3e37d2402a2c94485b986c51daa26a04f72", mustChange: false, failed: 0, lockedUntil: null },
     8: { salt: "d6850d6d1940f262", hash: "14b9a0e38d68bacb81cdc9d6c43e3f628f6488a64afb5a3dc99b2399968a3149", mustChange: false, failed: 0, lockedUntil: null },
     9: { salt: "b81d34101e3c8ec9", hash: "8dc5b180e6b57a0436c379fc2d523d9c6e270c2efd962ac45e1c58dab8195f26", mustChange: false, failed: 0, lockedUntil: null },
+    10: { salt: "3c90dd25ba1330f8", hash: "f9309c12812fcb8adf5c838dfa223b51e707b547453084347b3f5093ad4ef235", mustChange: false, failed: 0, lockedUntil: null },
+    11: { salt: "61236a9d00f82e58", hash: "f255a6562574d5816950dde8b68e591871f7c6dda8885d7e3b778cb693d6b681", mustChange: false, failed: 0, lockedUntil: null },
+    12: { salt: "5a8a89af36fdd71c", hash: "d739b6c9c1bb9f2d7e66c2b910e2512d620596ff107677b71dc5c3e5ac9c401c", mustChange: false, failed: 0, lockedUntil: null },
+    13: { salt: "bef0767d22335c8a", hash: "9da18e0104dd650cf297d42916a4ee5eebf07f6de0a7dbb9dadb622afccd3732", mustChange: false, failed: 0, lockedUntil: null },
+    14: { salt: "8a675f24392465ac", hash: "1e95c0f28a69ceef4b7c167efb4b22190d13b447d49ce830dfe85f388abe41b5", mustChange: false, failed: 0, lockedUntil: null },
+    15: { salt: "1c749fbce106a703", hash: "72b6f4d8268f078edeec4309b00664d1d3b5912dcfc229fcc73462ef193b0598", mustChange: false, failed: 0, lockedUntil: null },
 }
 
 const toHex = (buf: ArrayBuffer) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");

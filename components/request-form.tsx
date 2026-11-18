@@ -34,8 +34,11 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
     const fileInput = useRef<HTMLInputElement>(null);
 
     const active = store.categories.filter((c) => c.active);
+    // แผนกที่ส่งคำขอถึงได้ = แผนกที่มีหัวหน้าแผนกในระบบ (ค่าเริ่มต้น แผนก IT ถ้ามี)
+    const targets = store.depts.filter((d) => findHead(store.users, d));
+    const defaultTarget = targets.includes("แผนก IT") ? "แผนก IT" : targets[0] ?? "";
     const [draft, setDraft] = useState<RequestDraft>(initial ?? {
-        title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: "แผนก IT", dueDate: "", attachments: [],
+        title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: defaultTarget, dueDate: "", attachments: [],
     });
     const [talked, setTalked] = useState(!!initial);
     const [dragging, setDragging] = useState(false);
@@ -44,7 +47,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
     const [submitted, setSubmitted] = useState(false);
 
     // กรอกค้างไว้แล้วจะปิดแท็บ/รีเฟรช → เบราว์เซอร์ถามก่อน
-    const dirty = !submitted && JSON.stringify(draft) !== JSON.stringify(initial ?? { title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: "แผนก IT", dueDate: "", attachments: [] });
+    const dirty = !submitted && JSON.stringify(draft) !== JSON.stringify(initial ?? { title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: defaultTarget, dueDate: "", attachments: [] });
     useLeaveGuard(dirty);
 
     const set = <K extends keyof RequestDraft>(key: K, value: RequestDraft[K]) => setDraft((d) => ({ ...d, [key]: value }));
@@ -122,7 +125,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">แผนก (ส่งถึง)
                         <select aria-label="แผนก" className={fieldClass} value={draft.targetDept} onChange={(e) => set("targetDept", e.target.value)}>
-                            {store.depts.filter((d) => findHead(store.users, d)).map((d) => <option key={d} value={d}>{d}</option>)}
+                            {targets.map((d) => <option key={d} value={d}>{d}</option>)}
                         </select>
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">วันที่ต้องการ *

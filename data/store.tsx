@@ -46,7 +46,7 @@ export type PlanDraft = {
     subs: { title: string, assigneeId: number, dueDate: string }[]
 }[]
 
-const DATA_KEY = "rq-data-v4";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
+const DATA_KEY = "rq-data-v5";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
 const SESSION_KEY = "rq-session-v1";
 
 const seed = (): Data => ({
@@ -247,7 +247,7 @@ function useStoreValue() {
     });
     const rejectRequest = (id: number, reason: string) => setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
     const forwardRequest = (id: number, dept: string, reason: string) =>
-        setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
+        setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept, teamId: null }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
 
     // ---------- ผู้รับงาน ----------
     const setProgress = (taskId: number, progress: number) => setData((d) => {

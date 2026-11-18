@@ -1,4 +1,4 @@
-import type { Role, User } from "@/data/users";
+import { users as seedUsers, type Role, type User } from "@/data/users";
 
 // สถานะของคำขอ 7 แบบ (ตาม SRS) · "เกินกำหนด" ไม่ใช่สถานะที่เก็บ แต่คำนวณตอนแสดง (displayStatus)
 export type Status =
@@ -168,10 +168,12 @@ export const lastUpdate = (r: Request, logs: Log[]) =>
 
 // ===== ข้อมูลตัวอย่าง (อิงจาก Figma) =====
 // ผู้ใช้: 1 แอน, 2 เอก, 3 สมศักดิ์ (ฝ่ายขาย) · 4 วิชัย (หัวหน้าแผนก IT), 5 ต้น, 6 พลอย, 7 เก่ง (แผนก IT) · 8 ประภาพร · 9 นิด
+//        10 สุดา, 11 นพ (ฝ่ายบัญชี) · 12 ดา (ฝ่ายบุคคล ไม่มีหัวหน้าต้นสังกัด) · 13 ปิยะ (หัวหน้าแผนกข้อมูล), 14 ภูมิ, 15 ฝน (แผนกข้อมูล)
 
 const at = (date: string, time = "09:00") => `${date}T${time}:00+07:00`
 
-type SeedRow = [code: number, title: string, cat: number, requester: number, status: Status, created: string, due: string, approver: number | null]
+// target ไม่ใส่ = แผนก IT
+type SeedRow = [code: number, title: string, cat: number, requester: number, status: Status, created: string, due: string, approver: number | null, target?: string]
 
 const rows: SeedRow[] = [
     [152, "เพิ่มตัวกรองลูกค้าในระบบ CRM", 2, 1, "pending_approval", "2026-11-11", "2026-11-30", null],
@@ -203,7 +205,22 @@ const rows: SeedRow[] = [
     [123, "นำเข้าราคาสินค้าจาก Excel", 1, 1, "done", "2026-08-21", "2026-09-15", 3],
     [124, "แก้หน้าพิมพ์ใบส่งของตัวหนังสือเพี้ยน", 3, 2, "done", "2026-09-09", "2026-09-20", 3],
     [125, "ขอสิทธิ์เข้าระบบบัญชีให้พนักงานใหม่", 4, 3, "rejected", "2026-09-28", "2026-10-05", 3],
+    // หลายแผนก: ฝ่ายบัญชี/ฝ่ายบุคคลเป็นผู้ขอ · แผนกข้อมูลเป็นแผนกปลายทางที่สอง
+    [160, "รายงานกระแสเงินสดรายสัปดาห์", 1, 11, "pending_approval", "2026-11-14", "2026-12-12", null, "แผนกข้อมูล"],
+    [159, "ระบบอนุมัติใบเบิกค่าใช้จ่ายออนไลน์", 1, 11, "pending_target", "2026-11-13", "2027-01-15", 10],
+    [158, "Dashboard ยอดขายแยกตามภาค", 1, 1, "pending_target", "2026-11-12", "2026-12-20", 3, "แผนกข้อมูล"],
+    [143, "รายงานลูกค้าที่ไม่ซื้อเกิน 90 วัน", 1, 2, "pending_target", "2026-11-07", "2026-12-05", 3, "แผนกข้อมูล"],
+    [142, "หน้าบันทึกวันลาคำนวณวันผิด", 3, 12, "pending_target", "2026-11-10", "2026-11-24", null],
+    [146, "ล้างข้อมูลผู้ขายซ้ำในระบบบัญชี", 4, 10, "in_progress", "2026-10-30", "2026-11-25", 10, "แผนกข้อมูล"],
+    [141, "รายงานอัตราการลาออกรายไตรมาส", 1, 12, "in_progress", "2026-11-03", "2026-11-14", null, "แผนกข้อมูล"],
+    [138, "ระบบคาดการณ์ยอดขายด้วย AI", 1, 3, "rejected", "2026-10-27", "2026-12-31", 3, "แผนกข้อมูล"],
+    [133, "ส่งออกข้อมูลพนักงานให้ระบบเงินเดือน", 2, 12, "done", "2026-10-10", "2026-10-31", null, "แผนกข้อมูล"],
+    [127, "รายงานภาษีซื้อรายเดือน", 1, 11, "done", "2026-08-04", "2026-08-28", 10, "แผนกข้อมูล"],
+    [120, "นำเข้าข้อมูลพนักงานใหม่จาก Excel", 2, 12, "done", "2026-07-02", "2026-07-24", null, "แผนกข้อมูล"],
 ]
+
+// คำขอที่ถูกส่งต่อมาจากแผนกอื่น (แผนกเดิม)
+const forwarded: Record<number, string> = { 143: "แผนก IT" }
 
 const details: Record<number, string> = {
     152: "ฝ่ายขายต้องการกรองรายชื่อลูกค้าตามจังหวัด ประเภทลูกค้า และยอดซื้อย้อนหลัง เพื่อวางแผนเยี่ยมลูกค้า",
@@ -213,17 +230,17 @@ const details: Record<number, string> = {
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5).toISOString().slice(0, 10)
 
-export const seedRequests: Request[] = rows.map(([code, title, cat, requester, status, created, due, approver], i) => ({
+export const seedRequests: Request[] = rows.map(([code, title, cat, requester, status, created, due, approver, target], i) => ({
     id: i + 1,
     code: `REQ-${String(code).padStart(4, "0")}`,
     title,
     detail: details[code] ?? `${title} · รายละเอียดเพิ่มเติมตามที่คุยกับหัวหน้าต้นสังกัดแล้ว`,
     categoryId: cat,
-    targetDept: "แผนก IT",
+    targetDept: target ?? "แผนก IT",
     dueDate: due,
     requesterId: requester,
     approverId: approver,
-    teamId: [148, 135, 139].includes(code) ? 1 : null,
+    teamId: [148, 135, 139].includes(code) ? 1 : [146, 141].includes(code) ? 4 : null,
     status,
     attachments: [],
     createdAt: at(created, code === 152 ? "09:40" : code === 148 ? "10:15" : code === 139 ? "13:05" : "09:00"),
@@ -246,6 +263,12 @@ const plan: [number, string, [string, number, string, number][]][] = [
     [129, "ทดสอบ", [["ตรวจรูปแบบกับฝ่ายขาย", 7, "2026-11-12", 0]]],
     [137, "พัฒนา", [["ปรับหน้าเข้าสู่ระบบ", 6, "2026-11-03", 100]]],
     [131, "ตั้งค่าสิทธิ์", [["ปรับสิทธิ์โฟลเดอร์", 7, "2026-10-30", 100]]],
+    [146, "ตรวจข้อมูล", [["หารายชื่อผู้ขายที่ซ้ำ", 14, "2026-11-10", 100], ["ยืนยันรายชื่อกับฝ่ายบัญชี", 13, "2026-11-14", 100]]],
+    [146, "รวมข้อมูล", [["รวมรหัสผู้ขายซ้ำ", 15, "2026-11-22", 40]]],
+    [141, "จัดทำรายงาน", [["ดึงข้อมูลการลาออก", 15, "2026-11-08", 100], ["ทำรายงานรายไตรมาส", 14, "2026-11-13", 50]]],
+    [133, "ส่งออกข้อมูล", [["เขียนสคริปต์ส่งออก", 15, "2026-10-28", 100]]],
+    [127, "จัดทำรายงาน", [["รายงานภาษีซื้อ", 14, "2026-08-25", 100]]],
+    [120, "นำเข้าข้อมูล", [["สคริปต์นำเข้าข้อมูลพนักงาน", 15, "2026-07-20", 100]]],
 ]
 
 export const seedTasks: Task[] = (() => {
@@ -269,23 +292,31 @@ export const seedLogs: Log[] = (() => {
     for (const r of seedRequests) {
         const c = r.createdAt.slice(0, 10);
         const code = Number(r.code.slice(4));
-        const head = 4;
-        add(r.id, r.requesterId, "ส่งคำขอ", null, "pending_approval", c, "", r.createdAt.slice(11, 16));
+        // หัวหน้าแผนกปลายทาง และคนที่ปิดงานสุดท้าย (ผู้รับงานของงานย่อยสุดท้าย) ตามแผนกของคำขอนั้น
+        const head = seedUsers.find((u) => u.dept === r.targetDept && u.roles.includes("head"))!.id;
+        const closer = seedTasks.filter((t) => t.requestId === r.id && t.assigneeId).at(-1)?.assigneeId ?? head;
+        const direct = r.approverId === null;   // ฝ่ายที่ไม่มีหัวหน้าต้นสังกัด → ส่งตรงถึงแผนกปลายทาง
+        add(r.id, r.requesterId, "ส่งคำขอ", null, direct ? "pending_target" : "pending_approval", c, "", r.createdAt.slice(11, 16));
         if (r.status === "pending_approval") continue;
         if (r.status === "returned") {
             add(r.id, r.approverId!, "ส่งกลับ", "pending_approval", "returned", addDays(c, 2), "กรุณาระบุว่าส่วนลดสูงสุดได้กี่เปอร์เซ็นต์ และใครเป็นคนอนุมัติส่วนลด");
             continue;
         }
-        add(r.id, r.approverId!, "อนุมัติ", "pending_approval", "pending_target", addDays(c, 1));
+        if (!direct) add(r.id, r.approverId!, "อนุมัติ", "pending_approval", "pending_target", addDays(c, 1));
+        if (forwarded[code]) {
+            const fromHead = seedUsers.find((u) => u.dept === forwarded[code] && u.roles.includes("head"))!.id;
+            add(r.id, fromHead, `ส่งต่อไป${r.targetDept}`, "pending_target", "pending_target", addDays(c, 2), "เป็นงานรายงานจากฐานข้อมูลลูกค้า แผนกข้อมูลรับผิดชอบโดยตรง");
+        }
         if (r.status === "pending_target") continue;
         if (r.status === "rejected") {
-            add(r.id, head, "ปฏิเสธ", "pending_target", "rejected", addDays(c, 3), code === 126 ? "ระบบจองห้องประชุมของบริษัทกลางมีอยู่แล้ว ให้ใช้ระบบเดิม" : "ไม่อยู่ในขอบเขตงานของแผนก IT");
+            add(r.id, head, "ปฏิเสธ", "pending_target", "rejected", addDays(c, 3), code === 126 ? "ระบบจองห้องประชุมของบริษัทกลางมีอยู่แล้ว ให้ใช้ระบบเดิม"
+                : code === 138 ? "ยังไม่มีข้อมูลย้อนหลังพอสำหรับทำโมเดลคาดการณ์ ให้เริ่มจาก Dashboard ยอดขายก่อน" : `ไม่อยู่ในขอบเขตงานของ${r.targetDept}`);
             continue;
         }
         add(r.id, head, "รับงานและมอบหมาย", "pending_target", "in_progress", addDays(c, 2));
         if (r.status === "in_progress") continue;
         const end = code === 139 ? "2026-11-09" : addDays(r.dueDate, -2);
-        add(r.id, 7, "แผนกปลายทางปิดงาน 100%", "in_progress", "pending_acceptance", end, "", "16:00");
+        add(r.id, closer, "แผนกปลายทางปิดงาน 100%", "in_progress", "pending_acceptance", end, "", "16:00");
         if (r.status === "pending_acceptance") continue;
         add(r.id, r.requesterId, "ตรวจรับงาน", "pending_acceptance", "done", addDays(end, 1));
     }

@@ -28,4 +28,11 @@ export const users: User[] = [
     { id: 7, name: "เก่ง", email: "assignee3.it@company.local", dept: "แผนก IT", position: "นักทดสอบระบบ", roles: ["assignee"] },
     { id: 8, name: "ประภาพร วงศ์ใหญ่", email: "executive.mgmt@company.local", dept: "ฝ่ายบริหาร", position: "ผอ.ฝ่ายปฏิบัติการ", roles: ["executive"] },
     { id: 9, name: "นิดา (นิด)", email: "admin.it@company.local", dept: "แผนก IT", position: "ผู้ดูแลระบบ", roles: ["admin"] },
+    // ฝ่ายบัญชี (มีหัวหน้าต้นสังกัด) · ฝ่ายบุคคล (ไม่มีหัวหน้าต้นสังกัดในระบบ → คำขอข้ามขั้นอนุมัติ) · แผนกข้อมูล (แผนกปลายทางที่สอง)
+    { id: 10, name: "สุดา มั่นคง", email: "approver.acc@company.local", dept: "ฝ่ายบัญชี", position: "หัวหน้าฝ่ายบัญชี", roles: ["approver", "requester"] },
+    { id: 11, name: "มานพ (นพ)", email: "requester.acc@company.local", dept: "ฝ่ายบัญชี", position: "เจ้าหน้าที่บัญชี", roles: ["requester"] },
+    { id: 12, name: "กานดา (ดา)", email: "requester.hr@company.local", dept: "ฝ่ายบุคคล", position: "เจ้าหน้าที่บุคคล", roles: ["requester"] },
+    { id: 13, name: "ปิยะ รุ่งเรือง", email: "head.data@company.local", dept: "แผนกข้อมูล", position: "หัวหน้าแผนกข้อมูล", roles: ["head", "approver"] },
+    { id: 14, name: "ภูมิ", email: "assignee.data@company.local", dept: "แผนกข้อมูล", position: "นักวิเคราะห์ข้อมูล", roles: ["assignee", "requester"] },
+    { id: 15, name: "ฝน", email: "assignee2.data@company.local", dept: "แผนกข้อมูล", position: "วิศวกรข้อมูล", roles: ["assignee"] },
 ]
