@@ -31,7 +31,6 @@ function Login() {
     const [capsLock, setCapsLock] = useState(false);
     const [error, setError] = useState("");
     const [fieldErr, setFieldErr] = useState<{ email?: string, password?: string }>({});
-    const [busy, setBusy] = useState(false);
 
     useEffect(() => { document.title = "เข้าสู่ระบบ · ระบบจัดการคำขอ"; }, []);
 
@@ -46,7 +45,7 @@ function Login() {
         if (ready && user) go(user, store.mustChangePassword);
     }, [ready, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const submit = async (e: FormEvent) => {
+    const submit = (e: FormEvent) => {
         e.preventDefault();
         const fe: typeof fieldErr = {};
         if (!email.trim()) fe.email = "กรุณากรอกอีเมล";
@@ -57,9 +56,7 @@ function Login() {
             document.getElementById(fe.email ? "email" : "password")?.focus();
             return;
         }
-        setBusy(true);
-        const res = await store.login(email, password, remember);
-        setBusy(false);
+        const res = store.login(email, password, remember);
         if (!res.ok) {
             setError(res.error);
             setPassword("");
@@ -115,7 +112,7 @@ function Login() {
                     <label htmlFor="remember" className="cursor-pointer">จดจำการเข้าสู่ระบบในเครื่องนี้</label>
                 </div>
 
-                <Button className="w-full" type="submit" disabled={busy || !ready}>{busy ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}</Button>
+                <Button className="w-full" type="submit" disabled={!ready}>เข้าสู่ระบบ</Button>
             </form>
             <p className="mt-4 text-center text-xs text-ink-3">ยังไม่มีบัญชีหรือเข้าสู่ระบบไม่ได้ ติดต่อผู้ดูแลระบบของบริษัท</p>
         </AuthLayout>

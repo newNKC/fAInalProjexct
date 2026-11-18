@@ -11,7 +11,7 @@ import {
     type Attachment, type Log, type Request, type Status, type Task,
 } from "@/data/requests";
 import { seedTeams, type Team } from "@/data/teams";
-import { LOCK_MINUTES, MAX_FAILED, hashPassword, makeCredential, normalizeEmail, seedCredentials, tempPassword, type Credential } from "@/data/auth";
+import { LOCK_MINUTES, MAX_FAILED, normalizeEmail, seedCredentials, tempPassword, type Credential } from "@/data/auth";
 import { users as seedUsers, type Role, type User } from "@/data/users";
 
 type Data = {
@@ -23,7 +23,7 @@ type Data = {
     tasks: Task[]
     logs: Log[]
     restrictByTeam: boolean   // จำกัดการมองเห็นคำขอตามทีม (หน้า "ทีม")
-    auth: Record<number, Credential>   // รหัสผ่าน (hash) ของผู้ใช้แต่ละคน · key = user id
+    auth: Record<number, Credential>   // รหัสผ่านของผู้ใช้แต่ละคน · key = user id
 }
 
 export type LoginResult = { ok: true, user: User, mustChange: boolean } | { ok: false, error: string }
@@ -46,7 +46,7 @@ export type PlanDraft = {
     subs: { title: string, assigneeId: number, dueDate: string }[]
 }[]
 
-const DATA_KEY = "rq-data-v5";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
+const DATA_KEY = "rq-data-v6";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
 const SESSION_KEY = "rq-session-v1";
 
 const seed = (): Data => ({
@@ -119,7 +119,7 @@ function useStoreValue() {
     const setCred = (userId: number, patch: Partial<Credential>) =>
         setData((d) => ({ ...d, auth: { ...d.auth, [userId]: { ...d.auth[userId], ...patch } } }));
 
-    const login = async (email: string, password: string, remember: boolean): Promise<LoginResult> => {
+    const login = (email: string, password: string, remember: boolean): LoginResult => {
         const wrong = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
         const found = data.users.find((u) => u.email.toLowerCase() === normalizeEmail(email));
         if (!found) return { ok: false, error: wrong };
@@ -131,7 +131,7 @@ function useStoreValue() {
             return { ok: false, error: `ใส่รหัสผ่านผิดเกิน ${MAX_FAILED} ครั้ง บัญชีถูกล็อกชั่วคราว ลองใหม่ใน ${Math.ceil(lockedMs / 60000)} นาที หรือติดต่อผู้ดูแลระบบ` };
         }
 
-        if (await hashPassword(cred.salt, password) !== cred.hash) {
+        if (password !== cred.password) {
             const failed = cred.failed + 1;
             if (failed >= MAX_FAILED) {
                 setCred(found.id, { failed: 0, lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60000).toISOString() });
@@ -153,20 +153,20 @@ function useStoreValue() {
     }
 
     // เปลี่ยนรหัสผ่านของตัวเอง (คืนข้อความผิดพลาด หรือ null ถ้าสำเร็จ)
-    const changePassword = async (current: string, next: string): Promise<string | null> => {
+    const changePassword = (current: string, next: string): string | null => {
         if (!user) return "กรุณาเข้าสู่ระบบใหม่";
         const cred = data.auth[user.id];
-        if (!cred || await hashPassword(cred.salt, current) !== cred.hash) return "รหัสผ่านปัจจุบันไม่ถูกต้อง";
+        if (!cred || current !== cred.password) return "รหัสผ่านปัจจุบันไม่ถูกต้อง";
         if (current === next) return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม";
-        const fresh = await makeCredential(next, false);
+        const fresh: Credential = { password: next, mustChange: false, failed: 0, lockedUntil: null };
         setData((d) => ({ ...d, auth: { ...d.auth, [user.id]: fresh } }));
         return null;
     }
 
     // ผู้ดูแลระบบรีเซ็ตรหัสผ่าน → ได้รหัสชั่วคราว (แสดงครั้งเดียว) ผู้ใช้ต้องตั้งใหม่ตอนเข้าสู่ระบบ · ปลดล็อกบัญชีไปด้วย
-    const resetPassword = async (userId: number): Promise<string> => {
+    const resetPassword = (userId: number): string => {
         const temp = tempPassword();
-        const fresh = await makeCredential(temp, true);
+        const fresh: Credential = { password: temp, mustChange: true, failed: 0, lockedUntil: null };
         setData((d) => ({ ...d, auth: { ...d.auth, [userId]: fresh } }));
         return temp;
     }

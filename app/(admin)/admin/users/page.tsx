@@ -146,10 +146,10 @@ export default function Page() {
             {/* รีเซ็ตรหัสผ่าน: ยืนยัน → แสดงรหัสชั่วคราวครั้งเดียว */}
             <ConfirmDialog open={!!resetting} title={`รีเซ็ตรหัสผ่านของ ${resetting?.name}?`} confirmLabel="รีเซ็ตรหัสผ่าน" danger
                 onClose={() => setResetting(null)}
-                onConfirm={async () => {
+                onConfirm={() => {
                     const u = resetting!;
                     setResetting(null);
-                    setTemp({ user: u, password: await store.resetPassword(u.id) });
+                    setTemp({ user: u, password: store.resetPassword(u.id) });
                     setCopied(false);
                 }}>
                 รหัสผ่านเดิมจะใช้ไม่ได้ทันที ผู้ใช้จะได้รหัสผ่านชั่วคราวและต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบ

@@ -1,9 +1,7 @@
-// รหัสผ่านของผู้ใช้ · เก็บเป็นค่า hash (SHA-256 + salt ต่อคน) ไม่เก็บรหัสผ่านตรง ๆ
-// ถ้าต่อ backend จริง ส่วนนี้ย้ายไปฝั่งเซิร์ฟเวอร์ทั้งหมด หน้าเว็บส่งแค่อีเมล+รหัสผ่านไปตรวจ
+// รหัสผ่านของผู้ใช้ + สถานะบัญชี (ล็อก / ต้องตั้งรหัสใหม่)
 
 export type Credential = {
-    salt: string
-    hash: string
+    password: string
     mustChange: boolean        // รหัสผ่านชั่วคราวจากผู้ดูแลระบบ → ต้องตั้งใหม่ก่อนใช้งาน
     failed: number             // ใส่ผิดติดกันกี่ครั้ง
     lockedUntil: string | null // ใส่ผิดครบ MAX_FAILED ครั้ง → ล็อกชั่วคราว
@@ -15,32 +13,21 @@ export const EMAIL_DOMAIN = "company.local";
 
 // รหัสผ่านเริ่มต้นของบัญชีตัวอย่างทุกบัญชีคือ Company@2026 (ดู README)
 export const seedCredentials: Record<number, Credential> = {
-    1: { salt: "1cafd35eecfd092b", hash: "e50e8747aa7810c3e6643d9180d01fe169a56b0f7d01559d2295ca0ea9f43d6b", mustChange: false, failed: 0, lockedUntil: null },
-    2: { salt: "10ae0324dafae7e5", hash: "ab931663886d80c0d56407f1036af5c9e4b75dd1d7e87541fd1ad88aeaae4035", mustChange: false, failed: 0, lockedUntil: null },
-    3: { salt: "a1616d5be8098a05", hash: "74caebe304af704afc34370975bd1734787014eb99b7e74a3a1db0c354853398", mustChange: false, failed: 0, lockedUntil: null },
-    4: { salt: "6c6ad2894927d259", hash: "18d92b35ec905c52fccad86c68886028a0b7f7f9c40d0ba0a966224ca6d7bceb", mustChange: false, failed: 0, lockedUntil: null },
-    5: { salt: "22938e3d97eb1df5", hash: "67f0b3e5b2a34a8a9ad5760bcf32c51447397b954615170f1c753a5b11175173", mustChange: false, failed: 0, lockedUntil: null },
-    6: { salt: "f9ab8f8cedf4cb46", hash: "3d4c7384be7b7a61b6d61143db037c24da09d5ca47c1117f889292b0d941b16b", mustChange: false, failed: 0, lockedUntil: null },
-    7: { salt: "bf4912cac019d379", hash: "274c871865dccf1a8a5935aa71f1a3e37d2402a2c94485b986c51daa26a04f72", mustChange: false, failed: 0, lockedUntil: null },
-    8: { salt: "d6850d6d1940f262", hash: "14b9a0e38d68bacb81cdc9d6c43e3f628f6488a64afb5a3dc99b2399968a3149", mustChange: false, failed: 0, lockedUntil: null },
-    9: { salt: "b81d34101e3c8ec9", hash: "8dc5b180e6b57a0436c379fc2d523d9c6e270c2efd962ac45e1c58dab8195f26", mustChange: false, failed: 0, lockedUntil: null },
-    10: { salt: "3c90dd25ba1330f8", hash: "f9309c12812fcb8adf5c838dfa223b51e707b547453084347b3f5093ad4ef235", mustChange: false, failed: 0, lockedUntil: null },
-    11: { salt: "61236a9d00f82e58", hash: "f255a6562574d5816950dde8b68e591871f7c6dda8885d7e3b778cb693d6b681", mustChange: false, failed: 0, lockedUntil: null },
-    12: { salt: "5a8a89af36fdd71c", hash: "d739b6c9c1bb9f2d7e66c2b910e2512d620596ff107677b71dc5c3e5ac9c401c", mustChange: false, failed: 0, lockedUntil: null },
-    13: { salt: "bef0767d22335c8a", hash: "9da18e0104dd650cf297d42916a4ee5eebf07f6de0a7dbb9dadb622afccd3732", mustChange: false, failed: 0, lockedUntil: null },
-    14: { salt: "8a675f24392465ac", hash: "1e95c0f28a69ceef4b7c167efb4b22190d13b447d49ce830dfe85f388abe41b5", mustChange: false, failed: 0, lockedUntil: null },
-    15: { salt: "1c749fbce106a703", hash: "72b6f4d8268f078edeec4309b00664d1d3b5912dcfc229fcc73462ef193b0598", mustChange: false, failed: 0, lockedUntil: null },
-}
-
-const toHex = (buf: ArrayBuffer) => Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-
-export async function hashPassword(salt: string, password: string) {
-    return toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${salt}:${password}`)));
-}
-
-export async function makeCredential(password: string, mustChange: boolean): Promise<Credential> {
-    const salt = toHex(crypto.getRandomValues(new Uint8Array(8)).buffer);
-    return { salt, hash: await hashPassword(salt, password), mustChange, failed: 0, lockedUntil: null };
+    1: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    2: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    3: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    4: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    5: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    6: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    7: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    8: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    9: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    10: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    11: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    12: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    13: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    14: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
+    15: { password: "Company@2026", mustChange: false, failed: 0, lockedUntil: null },
 }
 
 // กฎรหัสผ่าน (คืนรายการข้อที่ยังไม่ผ่าน)

@@ -26,19 +26,16 @@ export default function Page() {
     const [confirm, setConfirm] = useState("");
     const [show, setShow] = useState(false);
     const [error, setError] = useState("");
-    const [busy, setBusy] = useState(false);
 
     const failing = passwordRules.filter((r) => !r.test(next));
     const mismatch = confirm.length > 0 && confirm !== next;
 
-    const submit = async (e: FormEvent) => {
+    const submit = (e: FormEvent) => {
         e.preventDefault();
         if (!current || !next || !confirm) return setError("กรุณากรอกให้ครบทุกช่อง");
         if (failing.length) return setError(`รหัสผ่านใหม่ยังไม่ผ่านเงื่อนไข: ${failing.map((r) => r.label).join(", ")}`);
         if (next !== confirm) return setError("ยืนยันรหัสผ่านใหม่ไม่ตรงกัน");
-        setBusy(true);
-        const err = await store.changePassword(current, next);
-        setBusy(false);
+        const err = store.changePassword(current, next);
         if (err) return setError(err);
         setError(""); setCurrent(""); setNext(""); setConfirm("");
         store.showToast("เปลี่ยนรหัสผ่านแล้ว");
@@ -96,7 +93,7 @@ export default function Page() {
                             {show ? <EyeDisabled className="size-4" /> : <Eye className="size-4" />}{show ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                         </button>
                         {error && <p role="alert" className="flex items-start gap-2 text-sm text-red-600"><InfoCircle className="mt-0.5 size-4 shrink-0" />{error}</p>}
-                        <Button type="submit" size="sm" disabled={busy}>{busy ? "กำลังบันทึก..." : "บันทึกรหัสผ่านใหม่"}</Button>
+                        <Button type="submit" size="sm" >บันทึกรหัสผ่านใหม่</Button>
                     </form>
                 </Card>
             </div>
