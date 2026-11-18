@@ -11,7 +11,7 @@ import { Input } from "@/components/tailgrids/core/input";
 import Banner from "@/components/banner";
 import { Card, fmtSize } from "@/components/request-parts";
 import { saveFile } from "@/data/files";
-import { findApprover, findHead, nick, todayISO, type Attachment } from "@/data/requests";
+import { findHead, nick, todayISO, type Attachment } from "@/data/requests";
 import { useStore, type RequestDraft } from "@/data/store";
 import { cn } from "@/utils/cn";
 
@@ -45,6 +45,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [fileError, setFileError] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const sending = useRef(false);   // กันกดส่งซ้ำเร็ว ๆ แล้วได้คำขอซ้ำ
 
     // กรอกค้างไว้แล้วจะปิดแท็บ/รีเฟรช → เบราว์เซอร์ถามก่อน
     const dirty = !submitted && JSON.stringify(draft) !== JSON.stringify(initial ?? { title: "", detail: "", categoryId: active[0]?.id ?? 0, targetDept: defaultTarget, dueDate: "", attachments: [] });
@@ -77,8 +78,10 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
     // ตรวจทุกช่องพร้อมกัน แสดงข้อความใต้ช่องที่ผิด แล้วเลื่อนไปช่องแรกที่ผิด
     const submit = (e: FormEvent) => {
         e.preventDefault();
+        if (sending.current) return;
         const err: Record<string, string> = {};
         if (!draft.title.trim()) err.title = "กรุณากรอกหัวข้อ";
+        if (!active.some((c) => c.id === draft.categoryId)) err.categoryId = "หมวดนี้ถูกปิดใช้งานแล้ว กรุณาเลือกหมวดใหม่";
         if (!draft.dueDate) err.dueDate = "กรุณาเลือกวันที่ต้องการ";
         else if (draft.dueDate < today) err.dueDate = "วันที่ต้องการต้องไม่ใช่วันที่ผ่านมาแล้ว";
         if (!draft.detail.trim()) err.detail = "กรุณากรอกรายละเอียด";
@@ -89,13 +92,14 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
             document.getElementById(`f-${first}`)?.focus();
             return;
         }
+        sending.current = true;
         setSubmitted(true);
         onSubmit({ ...draft, title: draft.title.trim(), detail: draft.detail.trim() });
     }
     const errText = (k: string) => errors[k] && <span id={`e-${k}`} className="text-xs font-normal text-red-600">{errors[k]}</span>
     const bad = (k: string) => errors[k] ? { "aria-invalid": true, "aria-describedby": `e-${k}` } : {}
 
-    const approver = findApprover(store.users, user.dept);
+    const approver = store.approverOf(user.dept);
     const head = findHead(store.users, draft.targetDept);
     const selfApprove = approver?.id === user.id;
     const steps = [
@@ -103,7 +107,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
             ? { t: "คุณเป็นหัวหน้า: อนุมัติคำขอของตัวเอง", d: "ส่งแล้วไปกดอนุมัติในเมนู รออนุมัติ" }
             : approver
                 ? { t: "หัวหน้าต้นสังกัดอนุมัติ", d: `${nick(approver.name)} ตรวจว่าคำขอครบและจำเป็นจริง` }
-                : { t: "ข้ามขั้นอนุมัติ", d: `${user.dept}ยังไม่มีหัวหน้าต้นสังกัดในระบบ คำขอไปที่แผนกปลายทางทันที` },
+                : { t: "ข้ามขั้นอนุมัติ", d: `${user.dept}ไม่มีหัวหน้าต้นสังกัดที่อนุมัติได้ คำขอไปที่แผนกปลายทางทันที` },
         { t: `หัวหน้า${draft.targetDept}พิจารณา`, d: `${head ? nick(head.name) : "หัวหน้าแผนก"} รับงาน ปฏิเสธ หรือส่งต่อแผนกอื่น` },
         { t: "แผนกปลายทางดำเนินการ", d: "คุณเห็นงานหลักและความคืบหน้าเป็น %" },
         { t: "ตรวจรับงาน", d: "งานครบ 100% แล้วคุณกดตรวจรับเพื่อปิดคำขอ" },
@@ -119,9 +123,14 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                         {errText("title")}
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">หมวด
-                        <select aria-label="หมวด" className={fieldClass} value={draft.categoryId} onChange={(e) => set("categoryId", Number(e.target.value))}>
+                        <select id="f-categoryId" {...bad("categoryId")} aria-label="หมวด" className={cn(fieldClass, errors.categoryId && "border-red-500")} value={draft.categoryId} onChange={(e) => set("categoryId", Number(e.target.value))}>
                             {active.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            {/* หมวดเดิมของคำขอที่ถูกปิดใช้งานไปแล้ว: ยังแสดงให้เห็นว่าเลือกอะไรอยู่ */}
+                            {!active.some((c) => c.id === draft.categoryId) && store.categories.find((c) => c.id === draft.categoryId) && (
+                                <option value={draft.categoryId}>{store.categories.find((c) => c.id === draft.categoryId)!.name} (ปิดใช้งาน · ควรเลือกหมวดใหม่)</option>
+                            )}
                         </select>
+                        {errText("categoryId")}
                     </label>
                     <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">แผนก (ส่งถึง)
                         <select aria-label="แผนก" className={fieldClass} value={draft.targetDept} onChange={(e) => set("targetDept", e.target.value)}>
@@ -177,7 +186,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
 
                 <div className="mt-5 flex justify-end gap-3">
                     <Link href={cancelHref} className={buttonStyles({ appearance: "outline", size: "sm" })}>ยกเลิก</Link>
-                    <Button size="sm" type="submit"><Send1 />{submitLabel}</Button>
+                    <Button size="sm" type="submit" disabled={submitted}><Send1 />{submitLabel}</Button>
                 </div>
             </Card>
             </form>

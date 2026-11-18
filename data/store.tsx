@@ -113,7 +113,12 @@ function useStoreValue() {
     const userById = (id: number | null) => data.users.find((u) => u.id === id);
     const teamOf = (r: Request) => data.teams.find((t) => t.id === r.teamId) ?? null;
     // ผู้ใช้คนนี้ดูคำขอนี้ได้ไหม (ใช้กรองทุกรายการและหน้ารายละเอียด)
-    const canSee = (r: Request) => !!user && canView(data.users, user, r, { restrictByTeam: data.restrictByTeam, teamMembers: teamOf(r)?.memberIds ?? null });
+    const canSee = (r: Request) => !!user && canView(data.users, user, r, {
+        restrictByTeam: data.restrictByTeam, teamMembers: teamOf(r)?.memberIds ?? null,
+        assigned: data.tasks.some((t) => t.requestId === r.id && t.assigneeId === user.id),
+    });
+    // หัวหน้าต้นสังกัดที่จะพิจารณาคำขอของฝ่ายนี้ (null = ข้ามขั้นอนุมัติ) · ใช้แสดงในแบบฟอร์มส่งคำขอ
+    const approverOf = (dept: string) => approverIn(data, dept);
 
     // ---------- เข้า / ออกจากระบบ ----------
     const setCred = (userId: number, patch: Partial<Credential>) =>
@@ -181,6 +186,21 @@ function useStoreValue() {
     }
 
     // ---------- เปลี่ยนสถานะ + บันทึกประวัติ ----------
+    // หัวหน้าต้นสังกัดของฝ่ายที่อนุมัติได้จริง (มีโรล + โรลนั้นยังมีสิทธิ์ "อนุมัติคำขอ") · ไม่มี → คำขอข้ามขั้นอนุมัติ
+    const approverIn = (d: Data, dept: string) =>
+        d.permissions.find((p) => p.id === "approve")?.roles.includes("approver") ? findApprover(d.users, dept) : null;
+    // คำขอที่ค้างรออนุมัติของฝ่ายที่ไม่เหลือคนอนุมัติได้ → ส่งต่อไปแผนกปลายทาง
+    const releaseStuck = (d: Data): Data => {
+        let next = d;
+        for (const r of d.requests.filter((x) => x.status === "pending_approval"
+            && !approverIn(d, d.users.find((u) => u.id === x.requesterId)?.dept ?? ""))) {
+            next = changeStatus(next, r.id, "pending_target", "ข้ามขั้นอนุมัติ (ฝ่ายไม่มีหัวหน้าต้นสังกัดที่อนุมัติได้)");
+        }
+        return next;
+    }
+    // ทำต่อเฉพาะเมื่อคำขออยู่ในสถานะที่คาดไว้ (กันกดซ้ำ/กดจากหน้าเก่าแล้วทำซ้ำ)
+    const inStatus = (d: Data, id: number, ...statuses: Status[]) => statuses.includes(d.requests.find((r) => r.id === id)?.status as Status);
+
     // ตรวจสิทธิ์ก่อนทำรายการ (หน้า "สิทธิ์โรล") · ไม่มีสิทธิ์ → แจ้งแล้วไม่ทำ
     const deny = (...perms: string[]) => {
         if (perms.every((p) => can(p))) return false;
@@ -203,7 +223,7 @@ function useStoreValue() {
     // ---------- ผู้ขอ ----------
     const submitRequest = (draft: RequestDraft): Request | null => {
         if (!user || deny("submit")) return null;
-        const hasApprover = !!findApprover(data.users, user.dept);
+        const hasApprover = !!approverIn(data, user.dept);
         const id = nextId(data.requests);
         const maxCode = data.requests.reduce((m, r) => Math.max(m, Number(r.code.slice(4)) || 0), 0);
         const created: Request = {
@@ -229,22 +249,28 @@ function useStoreValue() {
         return created;
     }
 
-    const resubmitRequest = (id: number, draft: RequestDraft) =>
-        setData((d) => changeStatus(patchRequest(d, id, draft), id, "pending_approval", "แก้ไขและส่งใหม่"));
+    const resubmitRequest = (id: number, draft: RequestDraft) => setData((d) => {
+        if (!inStatus(d, id, "returned")) return d;
+        const hasApprover = !!approverIn(d, user?.dept ?? "");
+        return changeStatus(patchRequest(d, id, draft), id, hasApprover ? "pending_approval" : "pending_target",
+            hasApprover ? "แก้ไขและส่งใหม่" : "แก้ไขและส่งใหม่ (ข้ามขั้นอนุมัติ)");
+    });
 
-    const confirmDone = (id: number) => setData((d) => changeStatus(d, id, "done", "ตรวจรับงาน"));
+    const confirmDone = (id: number) => setData((d) => inStatus(d, id, "pending_acceptance") ? changeStatus(d, id, "done", "ตรวจรับงาน") : d);
     // ผู้ขอขอให้แก้ไข: งานย่อยที่เคยเสร็จกลับไปเป็น 80% (กลับเข้า "งานของฉัน" ของผู้รับงาน) + เก็บเหตุผลไว้แจ้งแผนกปลายทาง
     const requestFix = (id: number, reason: string) => setData((d) => {
+        if (!inStatus(d, id, "pending_acceptance")) return d;
         const tasks = d.tasks.map((t) => t.requestId === id && isLeafTask(t, d.tasks) && t.progress === 100 ? { ...t, progress: 80, completedAt: null } : t);
         return changeStatus(patchRequest({ ...d, tasks }, id, { fixReason: reason }), id, "in_progress", "ขอให้แก้ไขงาน", reason);
     });
 
     // ---------- หัวหน้าต้นสังกัด ----------
-    const approve = (id: number) => !deny("approve") && setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "pending_target", "อนุมัติ"));
-    const returnRequest = (id: number, reason: string) => !deny("approve") && setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "returned", "ส่งกลับ", reason));
+    const approve = (id: number) => !deny("approve") && setData((d) => !inStatus(d, id, "pending_approval") ? d : changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "pending_target", "อนุมัติ"));
+    const returnRequest = (id: number, reason: string) => !deny("approve") && setData((d) => !inStatus(d, id, "pending_approval") ? d : changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "returned", "ส่งกลับ", reason));
 
     // ---------- หัวหน้าแผนกปลายทาง ----------
     const acceptWithPlan = (id: number, plan: PlanDraft, teamId: number | null) => !deny("decide", "breakdown") && setData((d) => {
+        if (!inStatus(d, id, "pending_target")) return d;   // กันกดยืนยันซ้ำแล้วได้งานซ้ำ
         const tasks = [...d.tasks];
         for (const major of plan) {
             const mainId = nextId(tasks);
@@ -256,9 +282,9 @@ function useStoreValue() {
         }
         return changeStatus(patchRequest({ ...d, tasks }, id, { teamId }), id, "in_progress", "รับงานและมอบหมาย");
     });
-    const rejectRequest = (id: number, reason: string) => !deny("decide") && setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
+    const rejectRequest = (id: number, reason: string) => !deny("decide") && setData((d) => !inStatus(d, id, "pending_target") ? d : changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
     const forwardRequest = (id: number, dept: string, reason: string) =>
-        !deny("decide") && setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept, teamId: null }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
+        !deny("decide") && setData((d) => !inStatus(d, id, "pending_target") ? d : changeStatus(patchRequest(d, id, { targetDept: dept, teamId: null }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
 
     // ---------- ผู้รับงาน ----------
     const setProgress = (taskId: number, progress: number) => !deny("progress") && setData((d) => {
@@ -289,15 +315,11 @@ function useStoreValue() {
             if (data.users.filter((u) => u.roles.includes("admin")).length <= 1) return "ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน";
         }
         setData((d) => {
-            let next: Data = { ...d, users: d.users.map((u) => u.id === userId ? { ...u, roles } : u) };
-            const stuck = next.requests.filter((r) => r.status === "pending_approval"
-                && !findApprover(next.users, next.users.find((u) => u.id === r.requesterId)?.dept ?? ""));
-            for (const r of stuck) next = changeStatus(next, r.id, "pending_target", "ข้ามขั้นอนุมัติ (ฝ่ายไม่มีหัวหน้าต้นสังกัดแล้ว)");
-            return next;
+            return releaseStuck({ ...d, users: d.users.map((u) => u.id === userId ? { ...u, roles } : u) });
         });
         return null;
     }
-    const setPermissions = (permissions: Permission[]) => user?.roles.includes("admin") && setData((d) => ({ ...d, permissions }));
+    const setPermissions = (permissions: Permission[]) => user?.roles.includes("admin") && setData((d) => releaseStuck({ ...d, permissions }));
 
     const saveCategory = (c: Omit<Category, "id"> & { id?: number }) => !deny("categories") && setData((d) => ({
         ...d,
@@ -329,7 +351,7 @@ function useStoreValue() {
     const depts = Array.from(new Set(data.users.map((u) => u.dept)));
 
     return {
-        ...data, ready, user, depts, userById, teamOf, canSee, hasPerm, can, toast, showToast,
+        ...data, ready, user, depts, userById, teamOf, canSee, approverOf, hasPerm, can, toast, showToast,
         login, logout, changePassword, resetPassword, unlockUser, credentialOf, mustChangePassword,
         submitRequest, resubmitRequest, confirmDone, requestFix,
         approve, returnRequest,
