@@ -11,11 +11,13 @@ import Sidebar from "@/components/sidebar";
 import RoleBadge from "@/components/role-badge";
 import { menuCounts } from "@/components/action-items";
 import { menuFor } from "@/data/menus";
-import { primaryRole, roleHome } from "@/data/requests";
+import { primaryRole } from "@/data/requests";
+import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
 import type { Role } from "@/data/users";
 
-export default function RoleShell({ roles, children }: { roles?: Role[], children: ReactNode }) {
+// perm = รหัสสิทธิ์ในหน้า "สิทธิ์โรล" ที่กลุ่มหน้านี้ต้องมี (ผู้ดูแลระบบปิดสิทธิ์ → เข้าหน้าไม่ได้ ไม่ใช่แค่ซ่อนเมนู)
+export default function RoleShell({ roles, perm, children }: { roles?: Role[], perm?: string, children: ReactNode }) {
     const store = useStore();
     const router = useRouter();
     const { ready, user } = store;
@@ -46,7 +48,10 @@ export default function RoleShell({ roles, children }: { roles?: Role[], childre
         <div className="flex min-h-screen bg-page">
             <Sidebar menu={mustChange ? [] : menu} user={{ name: user.name, position: user.position, role: primaryRole(user) }} onLogout={store.logout} />
             <main className="min-w-0 flex-1 px-8 pt-6 pb-12">
-                {allowed ? children : <NoAccess roles={roles!} />}
+                {!allowed ? <NoAccess roles={roles!} />
+                    : perm && !store.hasPerm(perm, roles ? user.roles.filter((r) => roles.includes(r)) : user.roles)
+                        ? <NoAccess text="ผู้ดูแลระบบปิดสิทธิ์ของโรลคุณสำหรับหน้านี้" />
+                        : children}
             </main>
 
             {/* ข้อความแจ้งผลหลังกดปุ่ม (หายเองใน 4 วินาที) */}
@@ -63,15 +68,16 @@ export default function RoleShell({ roles, children }: { roles?: Role[], childre
 }
 
 // ไม่มีสิทธิ์เข้าหน้านี้ (ใช้ทั้งใน RoleShell และ Guard)
-export function NoAccess({ roles, text }: { roles?: Role[], text?: string }) {
-    const { user } = useStore();
+export function NoAccess({ roles, text, title = "ไม่มีสิทธิ์เข้าหน้านี้" }: { roles?: Role[], text?: string, title?: string }) {
+    const store = useStore();
+    const { user } = store;
     return (
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-            <h1 className="text-xl font-bold text-ink">ไม่มีสิทธิ์เข้าหน้านี้</h1>
+            <h1 className="text-xl font-bold text-ink">{title}</h1>
             <p className="flex flex-wrap items-center justify-center gap-1.5 text-sm text-ink-2">
                 {text ?? <>หน้านี้สำหรับ {roles?.map((r) => <RoleBadge key={r} role={r} />)} เท่านั้น</>}
             </p>
-            {user && <Link href={roleHome[primaryRole(user)]} className="text-sm font-semibold text-brand hover:underline">กลับหน้าแรกของฉัน</Link>}
+            {user && <Link href={homeFor(user, store.hasPerm)} className="text-sm font-semibold text-brand hover:underline">กลับหน้าแรกของฉัน</Link>}
         </div>
     )
 }

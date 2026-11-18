@@ -64,6 +64,8 @@ export default function MyTasksPage() {
   const totalCount = tasks.length;
   const inProgressCount = tasks.filter((task) => task.status !== 'completed').length;
   const overdueTasks = tasks.filter((task) => task.status === 'overdue');
+  // คำขอที่ผู้ขอกด "ขอให้แก้ไข" และมีงานของผู้ใช้คนนี้อยู่
+  const fixRequests = store.requests.filter((r) => r.status === 'in_progress' && r.fixReason && tasks.some((t) => t.requestId === r.id));
   const doneThisWeek = tasks.filter((task) => task.completedAt && daysBetween(task.completedAt, today) <= 6);
 
   /** บันทึก % ความคืบหน้า (ครบ 100% → งานเสร็จ) */
@@ -114,6 +116,14 @@ export default function MyTasksPage() {
               </p>
             </section>
           )}
+
+          {/* --- FIX REQUEST BANNER --- (ผู้ขอขอให้แก้ไขหลังงานเสร็จ) */}
+          {fixRequests.map((r) => (
+            <section key={r.id} aria-label="ผู้ขอขอให้แก้ไข" className="mb-6 flex items-center gap-3 rounded-lg bg-orange-100 px-4 py-4 text-sm font-medium text-orange-800">
+              <ErrorCircle1 className="h-5 w-5 shrink-0" />
+              <p>ผู้ขอขอให้แก้ไข {r.code} “{r.title}”: {r.fixReason} · งานที่เคยเสร็จกลับมาเป็น 80% ให้อัปเดตใหม่เมื่อแก้เสร็จ</p>
+            </section>
+          ))}
 
           {/* --- SUMMARY CARDS SECTION --- */}
           <section aria-label="สรุปงาน" className="mb-6 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

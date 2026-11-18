@@ -18,7 +18,7 @@ type Props = {
 export default function ConfirmDialog({ open, title, children, confirmLabel, danger, onClose, onConfirm }: Props) {
     return (
         <Backdrop isOpen={open} onOpenChange={(o) => !o && onClose()} isDismissable>
-            <Dialog role="alertdialog">
+            <Dialog role="alertdialog" aria-label={title} showCloseButton={false}>
                 <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
                 {children && <DialogBody className="text-sm text-ink-2">{children}</DialogBody>}
                 <DialogFooter>

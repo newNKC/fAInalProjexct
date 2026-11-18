@@ -23,7 +23,8 @@ export default function DepartmentRejectPage() {
   const user = store.user!;
   const [finished, setFinished] = useState(false);
   const request = store.requests.find((r) => r.id === Number(id));
-  if (!request || (!finished && (request.targetDept !== user.dept || request.status !== "pending_target"))) {
+  if (!request) return <NoAccess title="ไม่พบคำขอ" text="ไม่มีคำขอนี้ในระบบ หรือลิงก์ไม่ถูกต้อง" />;
+  if ((!finished && (request.targetDept !== user.dept || request.status !== "pending_target"))) {
     return <NoAccess text="คำขอนี้ไม่ได้รอแผนกของคุณพิจารณา" />;
   }
   const category = store.categories.find((c) => c.id === request.categoryId);

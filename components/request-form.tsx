@@ -173,7 +173,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                     <label htmlFor="talked" className="cursor-pointer">ได้คุยรายละเอียดคำขอนี้กับหัวหน้าต้นสังกัดแล้ว *</label>
                 </div>
                 <span id="f-talked" tabIndex={-1}>{errText("talked")}</span>
-                {Object.keys(errors).length > 0 && <p role="alert" className="mt-3 text-sm text-red-600">กรอกข้อมูลไม่ครบ {Object.keys(errors).length} ช่อง · ดูข้อความสีแดงใต้ช่อง</p>}
+                {Object.keys(errors).length > 0 && <p role="alert" className="mt-3 text-sm text-red-600">ข้อมูลยังไม่ถูกต้อง {Object.keys(errors).length} ช่อง · ดูข้อความสีแดงใต้ช่อง</p>}
 
                 <div className="mt-5 flex justify-end gap-3">
                     <Link href={cancelHref} className={buttonStyles({ appearance: "outline", size: "sm" })}>ยกเลิก</Link>

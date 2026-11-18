@@ -16,6 +16,7 @@ const statusBadgeStyles = cva(
                 pending_acceptance: "bg-[#FCE7F3] text-[#BE185D]",
                 done: "bg-[#D1FAE5] text-[#047857]",
                 overdue: "bg-[#FFE4E6] text-[#BE123C]",
+                fix: "bg-[#FFEDD5] text-[#C2410C]",
             },
         },
     }
@@ -30,6 +31,7 @@ export const STATUS_LABEL: Record<DisplayStatus, string> = {
     pending_acceptance: "รอตรวจรับ",
     done: "เสร็จสิ้น",
     overdue: "เกินกำหนด",
+    fix: "ขอให้แก้ไข",
 };
 
 export default function StatusBadge({ status, className }: { status: DisplayStatus, className?: string }) {

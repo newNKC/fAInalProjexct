@@ -14,7 +14,8 @@ import RequestSummaryCard from "@/components/request-ui/RequestSummaryCard";
 import {
   Combobox, ComboboxContent, ComboboxInput, ComboboxInputWrapper, ComboboxItem, ComboboxList, ComboboxTrigger,
 } from "@/components/tailgrids/core/combobox";
-import { NoAccess } from "@/components/role-shell";
+import ConfirmDialog from "@/components/confirm-dialog";
+import { Guard, NoAccess } from "@/components/role-shell";
 import { useLeaveGuard } from "@/components/use-leave-guard";
 import { isLeafTask, nick, taskProgress, thaiDate, todayISO } from "@/data/requests";
 import { useStore, type PlanDraft } from "@/data/store";
@@ -26,7 +27,7 @@ const TASK_GROUPS = [
   { title: "ทดสอบ", subtasks: ["ทดสอบการทำงานและตรวจสอบผลลัพธ์"] },
 ];
 
-export default function IncomingViewPage() {
+function IncomingViewPage() {
   const { id } = useParams<{ id: string }>();
   const store = useStore();
   const router = useRouter();
@@ -38,9 +39,11 @@ export default function IncomingViewPage() {
   const [teamId, setTeamId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [lateWarn, setLateWarn] = useState<string[]>([]);   // งานย่อยที่กำหนดเสร็จเลยวันที่ผู้ขอต้องการ (รอยืนยัน)
   useLeaveGuard(!saved && plan.some((m) => m.subs.some((s) => s.assigneeId)));
 
-  if (!request || request.targetDept !== user.dept || (request.status !== "pending_target" && !saved)) {
+  if (!request) return <NoAccess title="ไม่พบคำขอ" text="ไม่มีคำขอนี้ในระบบ หรือลิงก์ไม่ถูกต้อง" />;
+  if (request.targetDept !== user.dept || (request.status !== "pending_target" && !saved)) {
     return <NoAccess text="คำขอนี้ไม่ได้รอแผนกของคุณรับงาน" />;
   }
 
@@ -62,14 +65,21 @@ export default function IncomingViewPage() {
   const setSub = (i: number, k: number, patch: Partial<PlanDraft[number]["subs"][number]>) =>
     setPlan((p) => p.map((m, j) => j === i ? { ...m, subs: m.subs.map((s, l) => l === k ? { ...s, ...patch } : s) } : m));
 
-  const confirm = () => {
+  // force = ยืนยันแล้วว่ากำหนดเสร็จเลยวันที่ผู้ขอต้องการได้
+  const confirm = (force = false) => {
     const clean = plan.filter((m) => m.title.trim() || m.subs.some((s) => s.title.trim()));
     if (clean.length === 0) return setError("ต้องมีงานหลักอย่างน้อย 1 งาน");
     for (const m of clean) {
       if (!m.title.trim()) return setError("ตั้งชื่องานหลักให้ครบทุกงาน");
       if (m.subs.length === 0) return setError(`งานหลัก “${m.title}” ต้องมีงานย่อยอย่างน้อย 1 งาน`);
       if (m.subs.some((s) => !s.title.trim() || !s.assigneeId || !s.dueDate)) return setError(`งานย่อยใน “${m.title}” ต้องมีชื่องาน ผู้รับผิดชอบ และวันกำหนดเสร็จให้ครบ`);
+      const past = m.subs.find((s) => s.dueDate < todayISO());
+      if (past) return setError(`งานย่อย “${past.title || "(ไม่มีชื่อ)"}” กำหนดเสร็จเป็นวันที่ผ่านมาแล้ว (${thaiDate(past.dueDate, true)})`);
     }
+    setError("");
+    // เลยวันที่ผู้ขอต้องการ → เตือนก่อน แต่ยังยืนยันได้ (บางงานใช้เวลานานกว่าที่ขอจริง)
+    const late = clean.flatMap((m) => m.subs).filter((s) => s.dueDate > request.dueDate);
+    if (late.length && !force) return setLateWarn(late.map((s) => `${s.title} (${thaiDate(s.dueDate, true)})`));
     setSaved(true);
     store.acceptWithPlan(request.id, clean.map((m) => ({ title: m.title.trim(), subs: m.subs.map((s) => ({ ...s, title: s.title.trim() })) })), teamId);
     store.showToast(`รับงาน ${request.code} แล้ว · มอบหมาย ${clean.flatMap((m) => m.subs).length} งานย่อย`);
@@ -202,7 +212,7 @@ export default function IncomingViewPage() {
               })}
             </div>
             <div className="flex flex-col gap-2">
-              <button type="button" onClick={confirm}
+              <button type="button" onClick={() => confirm()}
                 className="inline-flex w-full items-center justify-center gap-3 rounded-lg bg-[#4338CA] px-4 py-2.5 font-medium text-white transition hover:bg-[#3730A3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4338CA]">
                 <Check size={18} aria-hidden="true" />
                 ยืนยันรับงานและมอบหมาย
@@ -215,6 +225,17 @@ export default function IncomingViewPage() {
           </Card>
         </aside>
       </div>
+
+      <ConfirmDialog open={lateWarn.length > 0} title="กำหนดเสร็จเลยวันที่ผู้ขอต้องการ" confirmLabel="ยืนยันรับงานต่อ"
+        onClose={() => setLateWarn([])} onConfirm={() => { setLateWarn([]); confirm(true); }}>
+        ผู้ขอต้องการภายใน {thaiDate(request.dueDate, true)} แต่งานย่อยต่อไปนี้กำหนดเสร็จหลังจากนั้น: {lateWarn.join(", ")}
+        · ควรแจ้งผู้ขอให้ทราบ
+      </ConfirmDialog>
     </>
   );
+}
+
+// ตรวจสิทธิ์ "breakdown" ในหน้า "สิทธิ์โรล" (ปิดสิทธิ์แล้วเข้าหน้าไม่ได้)
+export default function Page() {
+  return <Guard roles={["head"]} perm="breakdown"><IncomingViewPage /></Guard>;
 }

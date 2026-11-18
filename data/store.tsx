@@ -181,6 +181,13 @@ function useStoreValue() {
     }
 
     // ---------- เปลี่ยนสถานะ + บันทึกประวัติ ----------
+    // ตรวจสิทธิ์ก่อนทำรายการ (หน้า "สิทธิ์โรล") · ไม่มีสิทธิ์ → แจ้งแล้วไม่ทำ
+    const deny = (...perms: string[]) => {
+        if (perms.every((p) => can(p))) return false;
+        showToast("คุณไม่มีสิทธิ์ทำรายการนี้ (ผู้ดูแลระบบปิดสิทธิ์ไว้)");
+        return true;
+    }
+
     const changeStatus = (d: Data, requestId: number, to: Status, action: string, reason = ""): Data => {
         const r = d.requests.find((x) => x.id === requestId);
         if (!r || !user) return d;
@@ -195,7 +202,7 @@ function useStoreValue() {
 
     // ---------- ผู้ขอ ----------
     const submitRequest = (draft: RequestDraft): Request | null => {
-        if (!user) return null;
+        if (!user || deny("submit")) return null;
         const hasApprover = !!findApprover(data.users, user.dept);
         const id = nextId(data.requests);
         const maxCode = data.requests.reduce((m, r) => Math.max(m, Number(r.code.slice(4)) || 0), 0);
@@ -226,14 +233,18 @@ function useStoreValue() {
         setData((d) => changeStatus(patchRequest(d, id, draft), id, "pending_approval", "แก้ไขและส่งใหม่"));
 
     const confirmDone = (id: number) => setData((d) => changeStatus(d, id, "done", "ตรวจรับงาน"));
-    const requestFix = (id: number, reason: string) => setData((d) => changeStatus(d, id, "in_progress", "ขอให้แก้ไขงาน", reason));
+    // ผู้ขอขอให้แก้ไข: งานย่อยที่เคยเสร็จกลับไปเป็น 80% (กลับเข้า "งานของฉัน" ของผู้รับงาน) + เก็บเหตุผลไว้แจ้งแผนกปลายทาง
+    const requestFix = (id: number, reason: string) => setData((d) => {
+        const tasks = d.tasks.map((t) => t.requestId === id && isLeafTask(t, d.tasks) && t.progress === 100 ? { ...t, progress: 80, completedAt: null } : t);
+        return changeStatus(patchRequest({ ...d, tasks }, id, { fixReason: reason }), id, "in_progress", "ขอให้แก้ไขงาน", reason);
+    });
 
     // ---------- หัวหน้าต้นสังกัด ----------
-    const approve = (id: number) => setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "pending_target", "อนุมัติ"));
-    const returnRequest = (id: number, reason: string) => setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "returned", "ส่งกลับ", reason));
+    const approve = (id: number) => !deny("approve") && setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "pending_target", "อนุมัติ"));
+    const returnRequest = (id: number, reason: string) => !deny("approve") && setData((d) => changeStatus(patchRequest(d, id, { approverId: user?.id ?? null }), id, "returned", "ส่งกลับ", reason));
 
     // ---------- หัวหน้าแผนกปลายทาง ----------
-    const acceptWithPlan = (id: number, plan: PlanDraft, teamId: number | null) => setData((d) => {
+    const acceptWithPlan = (id: number, plan: PlanDraft, teamId: number | null) => !deny("decide", "breakdown") && setData((d) => {
         const tasks = [...d.tasks];
         for (const major of plan) {
             const mainId = nextId(tasks);
@@ -245,12 +256,12 @@ function useStoreValue() {
         }
         return changeStatus(patchRequest({ ...d, tasks }, id, { teamId }), id, "in_progress", "รับงานและมอบหมาย");
     });
-    const rejectRequest = (id: number, reason: string) => setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
+    const rejectRequest = (id: number, reason: string) => !deny("decide") && setData((d) => changeStatus(d, id, "rejected", "ปฏิเสธ", reason));
     const forwardRequest = (id: number, dept: string, reason: string) =>
-        setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept, teamId: null }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
+        !deny("decide") && setData((d) => changeStatus(patchRequest(d, id, { targetDept: dept, teamId: null }), id, "pending_target", `ส่งต่อไป${dept}`, reason));
 
     // ---------- ผู้รับงาน ----------
-    const setProgress = (taskId: number, progress: number) => setData((d) => {
+    const setProgress = (taskId: number, progress: number) => !deny("progress") && setData((d) => {
         const tasks = d.tasks.map((t) => t.id === taskId ? { ...t, progress, completedAt: progress === 100 ? (t.completedAt ?? now()) : null } : t);
         let next = { ...d, tasks };
         const task = tasks.find((t) => t.id === taskId);
@@ -259,33 +270,51 @@ function useStoreValue() {
         if (task && request?.status === "in_progress") {
             const leaves = tasks.filter((t) => t.requestId === task.requestId && isLeafTask(t, tasks));
             if (leaves.length > 0 && leaves.every((t) => t.progress === 100) && requestProgress(request, tasks) === 100) {
-                next = changeStatus(next, task.requestId, "pending_acceptance", "แผนกปลายทางปิดงาน 100%");
+                next = changeStatus(patchRequest(next, task.requestId, { fixReason: null }), task.requestId, "pending_acceptance",
+                    request.fixReason ? "แก้ไขตามที่ขอแล้ว ปิดงาน 100%" : "แผนกปลายทางปิดงาน 100%");
             }
         }
         return next;
     });
 
     // ---------- ผู้ดูแลระบบ ----------
-    const setUserRoles = (userId: number, roles: Role[]) =>
-        setData((d) => ({ ...d, users: d.users.map((u) => u.id === userId ? { ...u, roles } : u) }));
-    const setPermissions = (permissions: Permission[]) => setData((d) => ({ ...d, permissions }));
+    // แก้โรล (คืนข้อความผิดพลาด หรือ null ถ้าสำเร็จ)
+    //  - ห้ามเอาโรลผู้ดูแลระบบออกจากตัวเอง หรือจากผู้ดูแลระบบคนสุดท้าย (ไม่งั้นไม่มีใครแก้กลับได้)
+    //  - ฝ่ายไหนไม่เหลือหัวหน้าต้นสังกัด → คำขอที่ค้างรออนุมัติของฝ่ายนั้นส่งต่อไปแผนกปลายทางเลย (เหมือนฝ่ายที่ไม่มีหัวหน้าต้นสังกัด)
+    const setUserRoles = (userId: number, roles: Role[]): string | null => {
+        if (deny("users")) return "ไม่มีสิทธิ์";
+        const target = data.users.find((u) => u.id === userId);
+        if (target?.roles.includes("admin") && !roles.includes("admin")) {
+            if (userId === user?.id) return "เอาโรลผู้ดูแลระบบออกจากตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเป็นคนเอาออก";
+            if (data.users.filter((u) => u.roles.includes("admin")).length <= 1) return "ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน";
+        }
+        setData((d) => {
+            let next: Data = { ...d, users: d.users.map((u) => u.id === userId ? { ...u, roles } : u) };
+            const stuck = next.requests.filter((r) => r.status === "pending_approval"
+                && !findApprover(next.users, next.users.find((u) => u.id === r.requesterId)?.dept ?? ""));
+            for (const r of stuck) next = changeStatus(next, r.id, "pending_target", "ข้ามขั้นอนุมัติ (ฝ่ายไม่มีหัวหน้าต้นสังกัดแล้ว)");
+            return next;
+        });
+        return null;
+    }
+    const setPermissions = (permissions: Permission[]) => user?.roles.includes("admin") && setData((d) => ({ ...d, permissions }));
 
-    const saveCategory = (c: Omit<Category, "id"> & { id?: number }) => setData((d) => ({
+    const saveCategory = (c: Omit<Category, "id"> & { id?: number }) => !deny("categories") && setData((d) => ({
         ...d,
         categories: c.id
             ? d.categories.map((x) => x.id === c.id ? { ...x, ...c, id: x.id } : x)
             : [...d.categories, { ...c, id: nextId(d.categories) }],
     }));
-    const removeCategory = (id: number) => setData((d) => ({ ...d, categories: d.categories.filter((c) => c.id !== id) }));
+    const removeCategory = (id: number) => !deny("categories") && setData((d) => ({ ...d, categories: d.categories.filter((c) => c.id !== id) }));
 
-    const saveTeam = (t: Omit<Team, "id"> & { id?: number }) => setData((d) => ({
+    const saveTeam = (t: Omit<Team, "id"> & { id?: number }) => !deny("teams") && setData((d) => ({
         ...d,
         teams: t.id
             ? d.teams.map((x) => x.id === t.id ? { ...x, ...t, id: x.id } : x)
             : [...d.teams, { ...t, id: nextId(d.teams) }],
     }));
-    const removeTeam = (id: number) => setData((d) => ({ ...d, teams: d.teams.filter((t) => t.id !== id) }));
-    const setRestrictByTeam = (on: boolean) => setData((d) => ({ ...d, restrictByTeam: on }));
+    const removeTeam = (id: number) => !deny("teams") && setData((d) => ({ ...d, teams: d.teams.filter((t) => t.id !== id) }));
+    const setRestrictByTeam = (on: boolean) => !deny("teams") && setData((d) => ({ ...d, restrictByTeam: on }));
 
     // HR ซิงก์ (จำลอง): โหลดชื่อ แผนก ตำแหน่งใหม่ แต่คงโรลที่ผู้ดูแลตั้งไว้
     const syncHR = () => setData((d) => ({

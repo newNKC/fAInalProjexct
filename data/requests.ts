@@ -10,7 +10,7 @@ export type Status =
     | "pending_acceptance"   // รอตรวจรับ
     | "done"                 // เสร็จสิ้น
 
-export type DisplayStatus = Status | "overdue"
+export type DisplayStatus = Status | "overdue" | "fix"
 
 // ไฟล์แนบ: เก็บข้อมูลไฟล์ไว้ที่นี่ ส่วนตัวไฟล์จริงเก็บใน IndexedDB ของเบราว์เซอร์ (data/files.ts) ตาม id
 export type Attachment = { id: string, name: string, size: number, type: string }
@@ -27,6 +27,7 @@ export type Request = {
     approverId: number | null // คนที่อนุมัติ/ส่งกลับจริง
     teamId: number | null     // ทีมที่รับผิดชอบ (ไม่บังคับ)
     status: Status
+    fixReason?: string | null // ผู้ขอกด "ขอให้แก้ไข" หลังงานเสร็จ · ล้างเมื่อแผนกปลายทางปิดงาน 100% อีกครั้ง
     attachments: Attachment[]
     createdAt: string         // ISO
 }
@@ -142,10 +143,12 @@ export const todayISO = () => {
 }
 
 // เกินกำหนด = ยังรอแผนกปลายทางหรือกำลังทำ และเลยวันที่ต้องการแล้ว
+// ระหว่างแก้ตามที่ผู้ขอขอ ไม่นับเป็นเกินกำหนด (แสดงเป็น "ขอให้แก้ไข" แทน)
 export const isOverdue = (r: Request, today = todayISO()) =>
-    ["pending_target", "in_progress"].includes(r.status) && r.dueDate < today
+    ["pending_target", "in_progress"].includes(r.status) && r.dueDate < today && !r.fixReason
 
-export const displayStatus = (r: Request): DisplayStatus => isOverdue(r) ? "overdue" : r.status
+export const displayStatus = (r: Request): DisplayStatus =>
+    r.status === "in_progress" && r.fixReason ? "fix" : isOverdue(r) ? "overdue" : r.status
 
 export const daysBetween = (fromISO: string, toISO: string) =>
     Math.round((Date.parse(toISO.slice(0, 10)) - Date.parse(fromISO.slice(0, 10))) / 864e5)

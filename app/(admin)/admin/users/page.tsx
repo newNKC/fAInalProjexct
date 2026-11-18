@@ -1,5 +1,7 @@
 'use client'
 
+import { Guard } from '@/components/role-shell';
+
 import { useState } from "react";
 import { Locked3, Pencil1, Reload, Search1 } from "@tailgrids/icons";
 import { Button, buttonStyles } from "@/components/tailgrids/core/button";
@@ -17,7 +19,7 @@ import { allRoles, type Role, type User } from "@/data/users";
 import { cn } from "@/utils/cn";
 
 
-export default function Page() {
+function UsersPage() {
     // ข้อมูลกลาง (โรลที่แก้จะมีผลกับการเข้าสู่ระบบและเมนูของคนนั้นทันที)
     const store = useStore();
     const users = store.users;
@@ -58,11 +60,20 @@ export default function Page() {
         setDraftRoles((current) => checked ? [...current, role] : current.filter((r) => r !== role));
     }
 
+    // เตือนก่อนบันทึก: เอาโรลผู้ดูแลระบบออก / ฝ่ายไม่เหลือหัวหน้าต้นสังกัดทั้งที่มีคำขอรออนุมัติ
+    const adminCount = store.users.filter((u) => u.roles.includes("admin")).length;
+    const removingAdmin = !!editing?.roles.includes("admin") && !draftRoles.includes("admin")
+        && (editing.id === store.user?.id || adminCount <= 1);
+    const losesLastApprover = !!editing?.roles.includes("approver") && !draftRoles.includes("approver")
+        && store.users.filter((u) => u.dept === editing.dept && u.roles.includes("approver")).length <= 1;
+    const stuckWarning = losesLastApprover
+        ? store.requests.filter((r) => r.status === "pending_approval" && store.userById(r.requesterId)?.dept === editing?.dept).length : 0;
+
     // บันทึก: แทนโรลของคนนั้นด้วยโรลที่ติ๊ก
     const saveRoles = () => {
         if (!editing) return;
-        store.setUserRoles(editing.id, allRoles.filter((r) => draftRoles.includes(r)));
-        store.showToast(`บันทึกโรลของ ${editing.name} แล้ว`);
+        const err = store.setUserRoles(editing.id, allRoles.filter((r) => draftRoles.includes(r)));
+        store.showToast(err ?? `บันทึกโรลของ ${editing.name} แล้ว`);
     }
 
     return (
@@ -155,7 +166,7 @@ export default function Page() {
                 รหัสผ่านเดิมจะใช้ไม่ได้ทันที ผู้ใช้จะได้รหัสผ่านชั่วคราวและต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบ
             </ConfirmDialog>
             <Backdrop isOpen={!!temp} onOpenChange={(open) => !open && setTemp(null)}>
-                <Dialog>
+                <Dialog aria-label="รหัสผ่านชั่วคราว" showCloseButton={false}>
                     <DialogHeader><DialogTitle>รหัสผ่านชั่วคราวของ {temp?.user.name}</DialogTitle></DialogHeader>
                     <DialogBody className="flex flex-col gap-3 text-sm text-ink-2">
                         <p>ส่งรหัสนี้ให้ผู้ใช้ทางช่องทางที่ปลอดภัย · ปิดหน้าต่างนี้แล้วจะดูอีกไม่ได้</p>
@@ -171,7 +182,7 @@ export default function Page() {
 
             {/* edit roles dialog */}
             <Backdrop isOpen={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-                <Dialog>
+                <Dialog aria-label={`แก้ไขโรล ${editing?.name ?? ""}`} showCloseButton={false}>
                     <DialogHeader>
                         <DialogTitle>แก้ไขโรล: {editing?.name}</DialogTitle>
                     </DialogHeader>
@@ -193,13 +204,22 @@ export default function Page() {
                         </div>
 
                         {draftRoles.length === 0 && <p className="text-sm text-red-600">ต้องมีอย่างน้อย 1 โรล</p>}
+                        {removingAdmin && <p role="alert" className="text-sm text-red-600">{editing?.id === store.user?.id
+                            ? "เอาโรลผู้ดูแลระบบออกจากตัวเองไม่ได้ ให้ผู้ดูแลระบบคนอื่นเป็นคนเอาออก"
+                            : adminCount <= 1 ? "ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน" : ""}</p>}
+                        {stuckWarning > 0 && <p className="rounded-lg bg-[#FEF3C7] px-3 py-2 text-sm text-[#92400E]">
+                            {editing?.dept}จะไม่เหลือหัวหน้าต้นสังกัด · คำขอที่รออนุมัติ {stuckWarning} รายการจะถูกส่งต่อไปแผนกปลายทางโดยไม่ผ่านการอนุมัติ</p>}
                     </DialogBody>
                     <DialogFooter>
                         <DialogClose appearance="outline">ยกเลิก</DialogClose>
-                        <DialogClose disabled={draftRoles.length === 0} onClick={saveRoles}>บันทึก</DialogClose>
+                        <DialogClose disabled={draftRoles.length === 0 || removingAdmin} onClick={saveRoles}>บันทึก</DialogClose>
                     </DialogFooter>
                 </Dialog>
             </Backdrop>
         </>
     )
+}
+// ตรวจสิทธิ์ "users" ในหน้า "สิทธิ์โรล" (ปิดสิทธิ์แล้วเข้าหน้าไม่ได้)
+export default function Page() {
+  return <Guard roles={["admin"]} perm="users"><UsersPage /></Guard>;
 }

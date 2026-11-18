@@ -35,7 +35,7 @@ const getCompletionHref = (hrefBase, categories, completion) => {
   categories.forEach((category) => params.append("category", category));
   if (completion) params.set("completion", completion);
   const query = params.toString();
-  return query ? `${hrefBase}?${query}` : hrefBase;
+  return query ? `${hrefBase}${hrefBase.includes("?") ? "&" : "?"}${query}` : hrefBase;
 };
 
 export const Badge = ({ children }) => (

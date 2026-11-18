@@ -1,5 +1,7 @@
 'use client';
 
+import { Guard } from '@/components/role-shell';
+
 // หมวดคำขอ (งานของพิชญ์ เดิม admin/categories/page.tsx + Data/workmeData.ts)
 // ปรับให้ใช้ข้อมูลจริงจาก store: เพิ่ม/แก้/ลบ/เปิด-ปิดใช้งานแล้วมีผลกับแบบฟอร์มส่งคำขอและทุกหน้า · "ใช้ N คำขอ" นับจากคำขอจริง
 // เติมส่วนที่ขาด: เรียงลำดับรายการ, สถานะเปิด/ปิดใช้งานแสดงในรายการ, ยืนยันก่อนลบ, กระดิ่งใช้งานได้จริง
@@ -13,7 +15,7 @@ import { useStore } from '@/data/store';
 
 const CATEGORY_COLORS = ['#4F46E5', '#0284C7', '#E11D48', '#D97706', '#059669', '#7C3AED', '#DB2777', '#475569'];
 
-export default function CategoriesPage() {
+function CategoriesPage() {
     const store = useStore();
     useEffect(() => { document.title = 'หมวดคำขอ · ระบบจัดการคำขอ'; }, []);
     const usageCount = (category: Category) => store.requests.filter((r) => r.categoryId === category.id).length;
@@ -176,4 +178,9 @@ export default function CategoriesPage() {
             </ConfirmDialog>
         </div>
     );
+}
+
+// ตรวจสิทธิ์ "categories" ในหน้า "สิทธิ์โรล" (ปิดสิทธิ์แล้วเข้าหน้าไม่ได้)
+export default function Page() {
+  return <Guard roles={["admin"]} perm="categories"><CategoriesPage /></Guard>;
 }

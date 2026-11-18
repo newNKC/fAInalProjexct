@@ -5,7 +5,7 @@ import RoleShell from "@/components/role-shell";
 export default function Layout({ children }: { children: ReactNode }) {
     return (
         <Suspense>
-            <RoleShell roles={["approver"]}>{children}</RoleShell>
+            <RoleShell roles={["approver"]} perm="approve">{children}</RoleShell>
         </Suspense>
     )
 }

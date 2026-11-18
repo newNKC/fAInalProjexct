@@ -18,6 +18,7 @@ const STATUS_COLORS: Record<
   "รอตรวจรับ": "cyan",
   "เสร็จสิ้น": "success",
   "เกินกำหนด": "error",
+  "ขอให้แก้ไข": "warning",
 };
 
 export default function StatusTag({ status }: { status: string }) {

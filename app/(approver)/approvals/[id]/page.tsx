@@ -18,7 +18,8 @@ export default function ApprovalsViewPage() {
   const store = useStore();
   const request = store.requests.find((r) => r.id === Number(id));
   // ไม่ใช่คำขอที่รอคนนี้อนุมัติ (หรือพิจารณาไปแล้ว) → แจ้งแทนหน้า 404
-  if (!request || !canApprove(store.users, store.user!, request)) {
+  if (!request) return <NoAccess title="ไม่พบคำขอ" text="ไม่มีคำขอนี้ในระบบ หรือลิงก์ไม่ถูกต้อง" />;
+  if (!canApprove(store.users, store.user!, request)) {
     return <NoAccess text="คำขอนี้ไม่ได้รอคุณอนุมัติ (อาจถูกพิจารณาไปแล้ว)" />;
   }
 
@@ -41,9 +42,14 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
   const head = findHead(store.users, request.targetDept);
   const [isReturning, setIsReturning] = useState(false);
   const [comment, setComment] = useState("");
+  // ตรวจในหน้าเอง (ข้อความสีแดงใต้ช่อง แบบเดียวกับหน้าอื่น) แทน bubble ของเบราว์เซอร์
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [checkError, setCheckError] = useState(false);
+  const [commentError, setCommentError] = useState(false);
 
   const approveRequest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (["confirmDetails", "confirmDepartment", "confirmAttachments"].some((k) => !checks[k])) { setCheckError(true); return; }
     store.approve(requestId);
     store.showToast(`อนุมัติ ${request.code} แล้ว · ส่งต่อให้หัวหน้า${request.targetDept}`);
     router.push("/approvals");
@@ -51,7 +57,7 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
 
   const returnRequest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!comment.trim()) return;
+    if (!comment.trim()) { setCommentError(true); return; }
     store.returnRequest(requestId, comment.trim());
     store.showToast(`ส่ง ${request.code} กลับให้ ${nick(store.userById(request.requesterId)?.name)} แก้ไขแล้ว`);
     router.push("/approvals");
@@ -60,12 +66,13 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
   return (
     <Card className="h-fit">
       {isReturning ? (
-        <form onSubmit={returnRequest} className="space-y-4">
+        <form onSubmit={returnRequest} noValidate className="space-y-4">
           <button type="button" onClick={() => setIsReturning(false)} className="page-head__back">‹ กลับไปพิจารณา</button>
           <h3 className="font-semibold">ระบุข้อความที่ต้องการให้แก้ไข</h3>
           <Field label="รายละเอียดที่ต้องแก้ไข *">
-            <textarea value={comment} onChange={(event) => setComment(event.target.value)} rows={4} className="input"
-              placeholder="ระบุเหตุผลหรือรายละเอียดที่ต้องแก้ไข" required autoFocus />
+            <textarea value={comment} onChange={(event) => { setComment(event.target.value); setCommentError(false); }} rows={4} className="input"
+              placeholder="ระบุเหตุผลหรือรายละเอียดที่ต้องแก้ไข" aria-invalid={commentError} aria-describedby={commentError ? "comment-err" : undefined} autoFocus />
+            {commentError && <span id="comment-err" className="text-xs text-red-600">กรุณาระบุเหตุผลที่ส่งกลับ</span>}
           </Field>
           <Button type="submit" variant="danger" block>
             <ArrowLeft size={18} aria-hidden="true" />
@@ -74,7 +81,7 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
         </form>
       ) : (
         <div className="space-y-4">
-          <form onSubmit={approveRequest} className="space-y-4">
+          <form onSubmit={approveRequest} noValidate className="space-y-4">
             <div className="space-y-2">
               <h3 className="font-semibold">การพิจารณาของหัวหน้าต้นสังกัด</h3>
               <fieldset className="space-y-3">
@@ -86,11 +93,13 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
                   ["confirmAttachments", "แนบไฟล์ที่จำเป็นครบ"],
                 ].map(([key, text]) => (
                   <div key={key} className="flex items-start gap-3 rounded-lg border border-line p-3">
-                    <Checkbox id={key} name={key} required size="md" className="mt-1" />
+                    <Checkbox id={key} name={key} size="md" className="mt-1" checked={!!checks[key]}
+                      onChange={(e) => { setChecks((c) => ({ ...c, [key]: e.target.checked })); setCheckError(false); }} />
                     <Label htmlFor={key}>{text}</Label>
                   </div>
                 ))}
               </fieldset>
+              {checkError && <p role="alert" className="text-xs text-red-600">กรุณาตรวจและติ๊กให้ครบทุกข้อก่อนอนุมัติ</p>}
             </div>
             <Button type="submit" variant="success" block>
               <Check size={18} aria-hidden="true" />

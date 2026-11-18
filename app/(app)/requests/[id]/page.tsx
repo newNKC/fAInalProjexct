@@ -11,7 +11,8 @@ import PageHeader from "@/components/page-header";
 import ReasonDialog from "@/components/reason-dialog";
 import { MainTasks, RequestHistory, RequestInfo, RequestStepper, RequestSummary, TaskTree } from "@/components/request-parts";
 import { NoAccess } from "@/components/role-shell";
-import { canApprove, roleHome, primaryRole } from "@/data/requests";
+import { canApprove } from "@/data/requests";
+import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
 
 // รายละเอียดคำขอ (ทุกคนที่มีสิทธิ์ดูใช้หน้าเดียวกัน · ปุ่มที่เห็นขึ้นกับว่าเป็นใครกับคำขอนี้)
@@ -24,7 +25,7 @@ export default function Page() {
     const [acceptOpen, setAcceptOpen] = useState(false);
 
     const r = store.requests.find((x) => x.id === Number(id));
-    if (!r) return <NoAccess text="ไม่พบคำขอนี้" />;
+    if (!r) return <NoAccess title="ไม่พบคำขอ" text="ไม่มีคำขอนี้ในระบบ หรือลิงก์ไม่ถูกต้อง" />;
     if (!store.canSee(r)) return <NoAccess text="คำขอนี้อยู่นอกฝ่าย/แผนกของคุณ จึงมองไม่เห็น" />;
 
     const mine = r.requesterId === user.id;
@@ -35,7 +36,7 @@ export default function Page() {
 
     return (
         <>
-            <PageHeader title={`คำขอ ${r.code}`} back={{ href: mine || !isTargetSide ? "/requests" : roleHome[primaryRole(user)], label: "กลับ" }} />
+            <PageHeader title={`คำขอ ${r.code}`} back={{ href: mine || !isTargetSide ? "/requests" : homeFor(user, store.hasPerm), label: "กลับ" }} />
 
             {/* แถบแจ้งตามสถานะ + ปุ่มที่ผู้ใช้คนนี้ทำได้ */}
             <div className="mb-4 flex flex-col gap-2">
@@ -43,6 +44,12 @@ export default function Page() {
                     <Banner tone="warning" icon={<Reply />}
                         action={mine && <Link href={`/requests/${r.id}/edit`} className={buttonStyles({ size: "sm" })}>แก้ไขและส่งใหม่</Link>}>
                         ถูกส่งกลับให้แก้ไข{lastReason ? ` · เหตุผล: ${lastReason.reason}` : ""}
+                    </Banner>
+                )}
+                {r.status === "in_progress" && r.fixReason && (
+                    <Banner tone="warning" icon={<Reply />}>
+                        {mine ? "คุณขอให้แก้ไขงานนี้" : "ผู้ขอขอให้แก้ไขงานนี้"} · เหตุผล: {r.fixReason}
+                        {isTargetSide && " · งานที่เคยเสร็จกลับมาเป็น 80% อัปเดตใหม่เมื่อแก้เสร็จ"}
                     </Banner>
                 )}
                 {r.status === "rejected" && (

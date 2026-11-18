@@ -3,28 +3,28 @@ import {
     Plus, Shield1Check, UserMultiple1, UserMultiple4,
 } from "@tailgrids/icons";
 import type { MenuItem } from "@/components/sidebar";
-import { deptKind } from "@/data/requests";
+import { deptKind, primaryRole, roleHome } from "@/data/requests";
 import type { Role, User } from "@/data/users";
 
 // เมนูทั้งหมดในระบบ (ตาม Figma) · perm = รหัสสิทธิ์ในหน้า "สิทธิ์โรล" ที่ต้องมีจึงเห็นเมนูนี้
 type MenuDef = { href: string, label: (u: User) => string, icon: MenuItem["icon"], perm?: string }
 
 const M: Record<string, MenuDef> = {
-    approvals: { href: "/approvals", label: () => "รออนุมัติ", icon: <CheckCircle1 />, perm: "approve" },
-    incoming: { href: "/incoming", label: () => "คำขอเข้าแผนก", icon: <LetterBox />, perm: "decide" },
-    tasks: { href: "/tasks", label: () => "งานของฉัน", icon: <DoubleCheckMark />, perm: "progress" },
+    approvals: { href: "/approvals", label: () => "รออนุมัติ", icon: <CheckCircle1 aria-hidden="true" />, perm: "approve" },
+    incoming: { href: "/incoming", label: () => "คำขอเข้าแผนก", icon: <LetterBox aria-hidden="true" />, perm: "decide" },
+    tasks: { href: "/tasks", label: () => "งานของฉัน", icon: <DoubleCheckMark aria-hidden="true" />, perm: "progress" },
     // ผู้ขออย่างเดียวเห็น "คำขอของฉัน" · โรลอื่นเห็น "คำขอในฝ่าย/แผนก" (หน้าเดียวกัน แสดงคำขอของทุกคนในฝ่าย)
     // หัวหน้าต้นสังกัดเห็น "คำขอในฝ่าย" (คำขอที่คนในฝ่ายส่ง) · โรลอื่นเห็น "คำขอของฉัน" (หน้าเดียวกัน)
     // (หัวหน้าต้นสังกัดที่เป็นหัวหน้าแผนกปลายทางด้วย ใช้ "คำขอที่แผนกส่ง" เพื่อไม่ให้ชนกับเมนู "คำขอในแผนก")
-    requests: { href: "/requests", label: (u) => !u.roles.includes("approver") ? "คำขอของฉัน" : u.roles.includes("head") ? `คำขอที่${deptKind(u.dept)}ส่ง` : `คำขอใน${deptKind(u.dept)}`, icon: <FileTextMultiple /> },
+    requests: { href: "/requests", label: (u) => !u.roles.includes("approver") ? "คำขอของฉัน" : u.roles.includes("head") ? `คำขอที่${deptKind(u.dept)}ส่ง` : `คำขอใน${deptKind(u.dept)}`, icon: <FileTextMultiple aria-hidden="true" /> },
     // งานที่ส่งเข้าแผนก (หัวหน้าแผนก / ผู้รับงาน)
-    deptRequests: { href: "/incoming/dept", label: () => "คำขอในแผนก", icon: <FileTextMultiple /> },
-    newRequest: { href: "/requests/new", label: () => "ส่งคำขอใหม่", icon: <Plus />, perm: "submit" },
-    teams: { href: "/teams", label: () => "ทีม", icon: <UserMultiple4 />, perm: "teams" },
-    dashboard: { href: "/dashboard", label: () => "Dashboard", icon: <DashboardSquare1 />, perm: "dashboard" },
-    users: { href: "/admin/users", label: () => "จัดการผู้ใช้", icon: <UserMultiple1 />, perm: "users" },
-    categories: { href: "/admin/categories", label: () => "หมวดคำขอ", icon: <Bookmark1 />, perm: "categories" },
-    permissions: { href: "/admin/permissions", label: () => "สิทธิ์โรล", icon: <Shield1Check /> },
+    deptRequests: { href: "/incoming/dept", label: () => "คำขอในแผนก", icon: <FileTextMultiple aria-hidden="true" /> },
+    newRequest: { href: "/requests/new", label: () => "ส่งคำขอใหม่", icon: <Plus aria-hidden="true" />, perm: "submit" },
+    teams: { href: "/teams", label: () => "ทีม", icon: <UserMultiple4 aria-hidden="true" />, perm: "teams" },
+    dashboard: { href: "/dashboard", label: () => "Dashboard", icon: <DashboardSquare1 aria-hidden="true" />, perm: "dashboard" },
+    users: { href: "/admin/users", label: () => "จัดการผู้ใช้", icon: <UserMultiple1 aria-hidden="true" />, perm: "users" },
+    categories: { href: "/admin/categories", label: () => "หมวดคำขอ", icon: <Bookmark1 aria-hidden="true" />, perm: "categories" },
+    permissions: { href: "/admin/permissions", label: () => "สิทธิ์โรล", icon: <Shield1Check aria-hidden="true" /> },
 };
 
 // เมนูของแต่ละโรล (ลำดับตาม Figma)
@@ -57,4 +57,12 @@ export function menuFor(user: User, hasPerm: (perm: string, roles: Role[]) => bo
         .map((href) => defs.get(href)!)
         .filter(({ def, roles }) => !def.perm || hasPerm(def.perm, roles))
         .map(({ def }) => ({ href: def.href, label: def.label(user), icon: def.icon }));
+}
+
+// หน้าแรกของผู้ใช้ = เมนูแรกที่เขามีสิทธิ์ (ผู้ดูแลระบบปิดสิทธิ์ไหน หน้าแรกก็ไม่พาไปหน้านั้น)
+// (ใช้หน้าแรกของโรลหลักก่อน ถ้าโรลหลักถูกปิดสิทธิ์หน้านั้น ค่อยใช้เมนูแรกที่เหลือ)
+export function homeFor(user: User, hasPerm: (perm: string, roles: Role[]) => boolean): string {
+    const menu = menuFor(user, hasPerm).map((m) => m.href);
+    const preferred = roleHome[primaryRole(user)];
+    return menu.includes(preferred) ? preferred : menu[0] ?? "/account";
 }

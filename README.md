@@ -64,8 +64,8 @@ components/
   request-parts.tsx                   การ์ดสรุปคำขอ, ขั้นตอนคำขอ, ข้อมูลคำขอ, ประวัติ, งานหลัก/งานย่อย
   request-form.tsx                    แบบฟอร์มส่งคำขอ (ลากไฟล์มาวางได้)
   sort-table.tsx, sort-select.tsx     ตาราง/รายการที่เรียงตามหัวข้อได้
-  status-badge.tsx, category-badge.tsx, stat-card.tsx, banner.tsx, inbox-card.tsx,
-  progress-bar.tsx, filter-chips.tsx, reason-dialog.tsx, action-items.ts
+  status-badge.tsx, category-badge.tsx, banner.tsx, progress-bar.tsx, reason-dialog.tsx,
+  confirm-dialog.tsx, action-items.ts, sort-table.tsx, sort-select.tsx, use-query-state.ts, use-leave-guard.ts
   request-ui/                         ชุดคอมโพเนนต์หน้าจอของนพรัตน์ (RequestUI, CategoryTag, StatusTag, CategoryFilter,
                                       LinkButton) + DataTable, ProgressCell, RequestListPage, RequestSummaryCard
   tailgrids/core/                     คอมโพเนนต์ของ TailGrids (ไม่แก้)

@@ -10,7 +10,7 @@ import PageHeader from "@/components/page-header";
 import { Card } from "@/components/request-parts";
 import RoleBadge from "@/components/role-badge";
 import { passwordRules } from "@/data/auth";
-import { primaryRole, roleHome } from "@/data/requests";
+import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
 import { cn } from "@/utils/cn";
 
@@ -39,7 +39,7 @@ export default function Page() {
         if (err) return setError(err);
         setError(""); setCurrent(""); setNext(""); setConfirm("");
         store.showToast("เปลี่ยนรหัสผ่านแล้ว");
-        if (required) router.replace(roleHome[primaryRole(user)]);
+        if (required) router.replace(homeFor(user, store.hasPerm));
     }
 
     const field = (id: string, label: string, value: string, set: (v: string) => void, auto: string, extra?: ReactNode) => (

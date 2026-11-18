@@ -22,7 +22,7 @@ export default function ReasonDialog({ open, onClose, title, confirmLabel, dange
 
     return (
         <Backdrop isOpen={open} onOpenChange={(o) => { if (!o) { onClose(); setReason(""); } }}>
-            <Dialog>
+            <Dialog aria-label={title} showCloseButton={false}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                 </DialogHeader>

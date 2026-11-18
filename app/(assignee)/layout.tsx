@@ -5,7 +5,7 @@ import RoleShell from "@/components/role-shell";
 export default function Layout({ children }: { children: ReactNode }) {
     return (
         <Suspense>
-            <RoleShell roles={["assignee"]}>{children}</RoleShell>
+            <RoleShell roles={["assignee"]} perm="progress">{children}</RoleShell>
         </Suspense>
     )
 }

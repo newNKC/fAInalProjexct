@@ -14,7 +14,8 @@ export default function Page() {
     const store = useStore();
     const router = useRouter();
     const r = store.requests.find((x) => x.id === Number(id));
-    if (!r || r.requesterId !== store.user?.id || r.status !== "returned") {
+    if (!r) return <NoAccess title="ไม่พบคำขอ" text="ไม่มีคำขอนี้ในระบบ หรือลิงก์ไม่ถูกต้อง" />;
+    if (r.requesterId !== store.user?.id || r.status !== "returned") {
         return <NoAccess text="แก้ไขได้เฉพาะคำขอของคุณที่ถูกส่งกลับให้แก้ไข" />
     }
     const reason = store.logs.filter((l) => l.requestId === r.id && l.toStatus === "returned").at(-1);

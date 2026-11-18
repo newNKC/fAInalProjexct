@@ -30,7 +30,7 @@ export default function CategoryFilter({
     categories.forEach((category) => params.append("category", category));
     if (selectedStatus) params.set("completion", selectedStatus);
     const query = params.toString();
-    return query ? `${hrefBase}?${query}` : hrefBase;
+    return query ? `${hrefBase}${hrefBase.includes("?") ? "&" : "?"}${query}` : hrefBase;
   };
 
   return (

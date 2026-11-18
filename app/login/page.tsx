@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { Input } from "@/components/tailgrids/core/input";
 import AuthLayout from "@/components/auth-layout";
 import { EMAIL_DOMAIN } from "@/data/auth";
-import { primaryRole, roleHome } from "@/data/requests";
+import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
 import type { User } from "@/data/users";
 
@@ -36,7 +36,7 @@ function Login() {
 
     const go = (user: User, mustChange: boolean) => {
         if (mustChange) return router.replace("/account?required=1");
-        router.replace(safeNext(params.get("next")) ?? roleHome[primaryRole(user)]);
+        router.replace(safeNext(params.get("next")) ?? homeFor(user, store.hasPerm));
     }
 
     // เข้าสู่ระบบอยู่แล้ว (เช่น กดย้อนกลับมาหน้านี้) → ไปหน้าแรกของตัวเอง
