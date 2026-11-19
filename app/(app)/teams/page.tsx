@@ -117,15 +117,15 @@ function Teams() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-[28px] font-bold leading-tight tracking-tight text-slate-900">ทีม</h1>
-            <p className="mt-1 text-sm text-slate-500">{isAdmin ? 'ทีมของทุกแผนก' : `ทีมใน${user.dept}`}</p>
+            <p className="mt-1 text-sm text-slate-600">{isAdmin ? 'ทีมของทุกแผนก' : `ทีมใน${user.dept}`}</p>
           </div>
           <div className="flex items-center gap-2.5">
             {/* ช่องค้นหาทีมหรือสมาชิก */}
             <label className="relative block w-[280px] max-w-[calc(100vw-110px)]">
               <span className="sr-only">ค้นหาทีมหรือสมาชิก</span>
               <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาทีมหรือสมาชิก"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm text-slate-700 shadow-xs outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
-              <Search1 className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm text-slate-700 shadow-xs outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+              <Search1 className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             </label>
             <NotificationBell />
           </div>
@@ -136,7 +136,7 @@ function Teams() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* ปุ่มสลับมุมมองระหว่าง "ทีมทั้งหมด" และ "เฉพาะทีมของฉัน" */}
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-sm font-medium text-slate-500">มุมมอง:</span>
+              <span className="text-sm font-medium text-slate-600">มุมมอง:</span>
               {[{ v: false, label: 'ทีมทั้งหมด' }, { v: true, label: 'เฉพาะทีมของฉัน' }].map((o) => (
                 <button key={o.label} type="button" aria-pressed={onlyMine === o.v} onClick={() => setOnlyMine(o.v)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${onlyMine === o.v
@@ -180,7 +180,7 @@ function Teams() {
                 <span>{item.label}</span>
               </div>
               <p className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900">{item.value}</p>
-              <p className="mt-1.5 text-xs text-slate-400">{item.detail}</p>
+              <p className="mt-1.5 text-xs text-slate-600">{item.detail}</p>
             </article>
           ))}
         </section>
@@ -190,7 +190,7 @@ function Teams() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-slate-900">รายชื่อทีม</h2>
-              <p className="text-xs text-slate-500">แสดง {filteredTeams.length} จาก {teams.length} ทีม</p>
+              <p className="text-xs text-slate-600">แสดง {filteredTeams.length} จาก {teams.length} ทีม</p>
             </div>
             <SortSelect options={options} value={sort} onChange={setSort} />
           </div>
@@ -201,13 +201,13 @@ function Teams() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate text-lg font-bold text-slate-900">{team.name}</h3>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-600">
                       {team.dept} · หัวหน้าทีม: <span className="font-medium text-slate-700">{team.leadId ? nick(name(team.leadId)) : 'ยังไม่กำหนด'}</span>
                     </p>
                   </div>
                   <div className="flex gap-1">
                     <button type="button" aria-label={`แก้ไข${team.name}`} onClick={() => openEditModal(team)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-500 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
                       <Pencil1 className="h-4 w-4" />
                     </button>
                     <button type="button" aria-label={`ลบ${team.name}`}
@@ -216,7 +216,7 @@ function Teams() {
                         body: usedBy(team) ? `คำขอ ${usedBy(team)} รายการที่ผูกกับทีมนี้จะกลายเป็น "ไม่ระบุทีม"` : 'ลบแล้วกู้คืนไม่ได้',
                         run: () => { store.removeTeam(team.id); store.showToast(`ลบทีม “${team.name}” แล้ว`); },
                       })}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
                       <Trash1 className="h-4 w-4" />
                     </button>
                   </div>
@@ -236,12 +236,12 @@ function Teams() {
                     return (
                       <li key={uid} className="flex items-center gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-600">{member?.name.slice(0, 1)}</span>
-                        <span className="text-sm font-medium text-slate-800">{nick(member?.name)} <span className="text-xs font-normal text-slate-400">· {member?.position}</span></span>
+                        <span className="text-sm font-medium text-slate-800">{nick(member?.name)} <span className="text-xs font-normal text-slate-600">· {member?.position}</span></span>
                         <span className="ml-auto flex items-center gap-1.5">
                           {uid === team.leadId && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">หัวหน้าทีม</span>}
                           {teamCount > 1 && <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600">อยู่ {teamCount} ทีม</span>}
                           {uid !== team.leadId && (
-                            <button type="button" aria-label={`เอา ${nick(member?.name)} ออกจากทีม`} className="rounded p-1 text-slate-400 hover:text-red-600"
+                            <button type="button" aria-label={`เอา ${nick(member?.name)} ออกจากทีม`} className="rounded p-1 text-slate-600 hover:text-red-600"
                               onClick={() => setConfirm({
                                 title: `เอา ${nick(member?.name)} ออกจาก${team.name}?`, label: 'เอาออก', body: 'เพิ่มกลับเข้าทีมได้ภายหลัง',
                                 run: () => { store.saveTeam({ ...team, memberIds: team.memberIds.filter((x) => x !== uid) }); store.showToast(`เอา ${nick(member?.name)} ออกจาก${team.name}แล้ว`); },
@@ -253,7 +253,7 @@ function Teams() {
                       </li>
                     );
                   })}
-                  {team.memberIds.length === 0 && <li className="py-2 text-sm text-slate-400">ยังไม่มีสมาชิกในทีม</li>}
+                  {team.memberIds.length === 0 && <li className="py-2 text-sm text-slate-600">ยังไม่มีสมาชิกในทีม</li>}
                 </ul>
                 {/* ปุ่มเพิ่มสมาชิกเข้าทีมนี้ */}
                 <button type="button" onClick={() => openMemberModal(team)}
@@ -267,7 +267,7 @@ function Teams() {
         </section>
 
         {filteredTeams.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">ไม่พบทีมที่ตรงกับเงื่อนไข</div>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-600">ไม่พบทีมที่ตรงกับเงื่อนไข</div>
         )}
       </div>
 
@@ -279,7 +279,7 @@ function Teams() {
           <section role="dialog" aria-modal="true" aria-labelledby="team-modal-title" className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <h2 id="team-modal-title" className="text-lg font-bold text-slate-900">{modalTitle}{modalTeam && modal.type === 'member' ? ` · ${modalTeam.name}` : ''}</h2>
-              <button type="button" aria-label="ปิด" onClick={closeModal} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100">
+              <button type="button" aria-label="ปิด" onClick={closeModal} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100">
                 <Close className="h-4 w-4" />
               </button>
             </div>

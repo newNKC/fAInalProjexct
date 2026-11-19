@@ -51,7 +51,7 @@ export default function DataTable<T>({ rows, cols, rowKey, initialSort, empty = 
             </tr>
           </thead>
           <tbody>
-            {shown.length === 0 && <tr><td colSpan={cols.length} className="py-10 text-center text-slate-500">{empty}</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={cols.length} className="py-10 text-center text-slate-600">{empty}</td></tr>}
             {shown.map((row) => <tr key={rowKey(row)}>{cols.map((c) => <td key={c.key}>{c.render(row)}</td>)}</tr>)}
           </tbody>
         </table>

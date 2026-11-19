@@ -81,8 +81,8 @@ function CategoriesPage() {
                         <label className="relative block w-[260px] max-w-[calc(100vw-100px)]">
                             <span className="sr-only">ค้นหาหมวดคำขอ</span>
                             <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาชื่อหรือคำอธิบายหมวด"
-                                className="h-11 w-full rounded-lg border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
-                            <Search1 className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-slate-400" />
+                                className="h-11 w-full rounded-lg border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                            <Search1 className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-slate-600" />
                         </label>
                         <NotificationBell />
                     </div>
@@ -94,7 +94,7 @@ function CategoriesPage() {
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-800">หมวดคำขอทั้งหมด</h2>
-                                <p className="mt-1.5 text-sm text-slate-400">จัดการ เพิ่ม แก้ไข และลบหมวดคำขอ</p>
+                                <p className="mt-1.5 text-sm text-slate-600">จัดการ เพิ่ม แก้ไข และลบหมวดคำขอ</p>
                             </div>
                             <SortSelect options={options} value={sort} onChange={setSort} />
                         </div>
@@ -106,12 +106,12 @@ function CategoriesPage() {
                                     <span className="w-fit rounded border px-3 py-1.5 text-xs font-semibold" style={{ color: category.color, borderColor: category.color }}>
                                         {category.name}
                                     </span>
-                                    <p className="truncate text-sm text-slate-500">{category.description || '—'}</p>
-                                    <span className="col-start-2 text-xs text-slate-400 sm:col-start-auto">
+                                    <p className="truncate text-sm text-slate-600">{category.description || '—'}</p>
+                                    <span className="col-start-2 text-xs text-slate-600 sm:col-start-auto">
                                         ใช้ {usageCount(category)} คำขอ{!category.active && ' · ปิดใช้งาน'}
                                     </span>
                                     <button type="button" aria-label={`แก้ไขหมวด ${category.name}`} onClick={() => handleEdit(category)}
-                                        className="row-start-1 flex h-9 w-9 items-center justify-center rounded text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 sm:row-auto">
+                                        className="row-start-1 flex h-9 w-9 items-center justify-center rounded text-slate-600 transition-colors hover:bg-slate-100 hover:text-indigo-600 sm:row-auto">
                                         <Pencil1 className="h-5 w-5" />
                                     </button>
                                     <button type="button" aria-label={`ลบหมวด ${category.name}`}
@@ -122,9 +122,9 @@ function CategoriesPage() {
                                     </button>
                                 </div>
                             ))}
-                            {filteredCategories.length === 0 && <p className="py-8 text-center text-xs text-slate-400">ไม่พบหมวดคำขอที่ค้นหา</p>}
+                            {filteredCategories.length === 0 && <p className="py-8 text-center text-xs text-slate-600">ไม่พบหมวดคำขอที่ค้นหา</p>}
                         </div>
-                        <p className="border-t border-slate-200 pt-3 text-xs text-slate-400">
+                        <p className="border-t border-slate-200 pt-3 text-xs text-slate-600">
                             ลบได้เฉพาะหมวดที่ยังไม่มีคำขอ · หมวดที่ใช้งานแล้วให้แก้ไขเป็น “ปิดใช้งาน” แทน (จะไม่แสดงในแบบฟอร์มส่งคำขอ)
                         </p>
                     </section>
@@ -136,12 +136,12 @@ function CategoriesPage() {
                             <label className="block space-y-2 text-sm font-semibold text-slate-700">
                                 ชื่อหมวด <span className="text-red-500">*</span>
                                 <input required aria-label="ชื่อหมวด" value={name} onChange={(event) => { setName(event.target.value); setFormError(''); }} placeholder="เช่น ขอข้อมูล/รายงาน"
-                                    className="h-12 w-full rounded-lg border border-slate-300 px-4 text-sm font-normal outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+                                    className="h-12 w-full rounded-lg border border-slate-300 px-4 text-sm font-normal outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
                             </label>
                             <label className="block space-y-2 text-sm font-semibold text-slate-700">
                                 คำอธิบาย
                                 <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="อธิบายว่าคำขอแบบไหนควรใช้หมวดนี้" rows={4}
-                                    className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+                                    className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
                             </label>
                             <fieldset>
                                 <legend className="mb-3 text-sm font-semibold text-slate-700">สีป้าย</legend>

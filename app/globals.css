@@ -24,8 +24,8 @@
 
   /* Text Color */
   --color-text-50: #374151;
-  --color-text-100: #6b7280;
-  --color-text-200: #9ca3af;
+  --color-text-100: #4b5563;
+  --color-text-200: #6b7280;
   --color-text-300: #e5e7eb;
 
   /* Context Color */
@@ -135,8 +135,8 @@
   --color-button-success-outline-focus-ring: rgba(22, 163, 74, 0.2);
 
   /* Ghost */
-  --color-button-ghost-text: #9ca3af;
-  --color-button-ghost-hover-text: #6b7280;
+  --color-button-ghost-text: #6b7280;
+  --color-button-ghost-hover-text: #374151;
   --color-button-ghost-hover-background: #f3f4f6;
 
   /* Button Group Primary */
@@ -233,7 +233,7 @@
   --color-sidebar-nav-active-background: #eff3ff;
   --color-sidebar-nav-focused-background: #eff3ff;
   --color-sidebar-nav-default-text: #374151;
-  --color-sidebar-nav-icon: #6b7280;
+  --color-sidebar-nav-icon: #4b5563;
 
   /* Sidebar Badge */
   --color-sidebar-badge-background: #3758f9;
@@ -242,7 +242,7 @@
   /* Sidebar Footer */
   --color-sidebar-footer-background: #f9fafb;
   --color-sidebar-footer-title: #111827;
-  --color-sidebar-footer-subtitle: #6b7280;
+  --color-sidebar-footer-subtitle: #4b5563;
   --color-sidebar-footer-button-text: #ffffff;
 
   /* ======== Card Color =========*/
@@ -310,7 +310,7 @@
   --color-input-background: #ffffff;
   --color-input-label-text: #374151;
   --color-input-disabled-text: #d1d5db;
-  --color-input-placeholder-text: #9ca3af;
+  --color-input-placeholder-text: #6b7280;
   --color-input-primary-focus-border: #91aeff;
   --color-input-error-focus-border: #ef4444;
   --color-input-success-focus-border: #22c55e;
@@ -354,7 +354,7 @@
   --color-calendar-info-badge: #0ea5e9;
   --color-calendar-info-background: #f0f9ff;
   --color-calendar-text: #374151;
-  --color-calendar-menu-text: #9ca3af;
+  --color-calendar-menu-text: #6b7280;
   --color-calendar-dropdown-background: #ffffff;
 
   /* ======== Pricing Table Color =========*/
@@ -505,12 +505,12 @@
 
   --color-sidebar: #1E1B4B;
   --color-sidebar-active: #312E81;
-  --color-sidebar-ink: #C7D2FE;
+  --color-sidebar-ink: #E0E7FF;
 
   --color-page: #F8FAFC;
   --color-ink: #0F172A;
-  --color-ink-2: #475569;
-  --color-ink-3: #94A3B8;
+  --color-ink-2: #334155;
+  --color-ink-3: #475569;
   --color-line: #E2E8F0;
 
   --color-role-requester: #2563EB;   --color-role-requester-soft: #DBEAFE;

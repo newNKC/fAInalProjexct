@@ -44,7 +44,7 @@
   /* ---------- 6. การ์ด / ตาราง ---------- */
   .card { @apply rounded-xl border bg-white; border-color: var(--line); }
   .card--pad { @apply p-6; }
-  .card--empty { @apply border-dashed p-12 text-center text-sm; color: #9ca3af; }
+  .card--empty { @apply border-dashed p-12 text-center text-sm; color: #4b5563; }
   .table-wrap { @apply overflow-hidden rounded-xl border bg-white; border-color: var(--line); }
   .table { @apply w-full min-w-[720px] text-left text-sm; }
   .table th { @apply px-5 py-3 font-medium; background: var(--brand-soft); color: var(--navy-2); }
@@ -52,7 +52,7 @@
   .table tbody tr:hover { background: #faf5ff; }
   .table__id { @apply font-medium; color: var(--brand); }
   .table__action { @apply text-right; }
-  .cell-sub { @apply text-xs; color: #9ca3af; }
+  .cell-sub { @apply text-xs; color: #4b5563; }
 
   /* ---------- 7. Badge ---------- */
   .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }

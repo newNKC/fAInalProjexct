@@ -52,7 +52,7 @@ export default function RequestListPage({ title, sub, hrefBase, requests, mode, 
       key: "title", label: "เรื่อง", sortValue: (r) => r.title, render: (r) => (
         <Link href={`/requests/${r.id}`} className="group block">
           <div className="font-medium group-hover:underline">{r.title}</div>
-          <div className="mt-1 text-xs text-slate-500 group-hover:text-brand">{r.code}</div>
+          <div className="mt-1 text-xs text-slate-600 group-hover:text-brand">{r.code}</div>
         </Link>
       ),
     },
@@ -74,7 +74,7 @@ export default function RequestListPage({ title, sub, hrefBase, requests, mode, 
       {banners}
       <CategoryFilter hrefBase={hrefBase} selectedCategories={selectedCategories} selectedStatus={selectedStatus} options={categoryNames} />
       <DataTable rows={rows} cols={cols} rowKey={(r) => r.id} initialSort={{ key: "updated", dir: "desc" }} empty="ไม่มีคำขอที่ตรงกับตัวกรอง" />
-      <p className="mt-3 text-xs text-slate-500">กดชื่อเรื่องเพื่อดูรายละเอียด · {rows.length} รายการ</p>
+      <p className="mt-3 text-xs text-slate-600">กดชื่อเรื่องเพื่อดูรายละเอียด · {rows.length} รายการ</p>
     </>
   );
 }

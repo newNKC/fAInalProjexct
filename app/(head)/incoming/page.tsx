@@ -39,7 +39,7 @@ export default function IncomingDashboard() {
       <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {summaries.map((summary) => (
           <Card key={summary.label} className="!min-w-0">
-            <dt className="flex items-center gap-2 text-sm text-slate-500">
+            <dt className="flex items-center gap-2 text-sm text-slate-600">
               <span className={`size-2 rounded-full ${summary.color}`} aria-hidden="true" />
               {summary.label}
             </dt>
@@ -77,7 +77,7 @@ export default function IncomingDashboard() {
                           : "ฝ่ายนี้ไม่มีหัวหน้าต้นสังกัด · ส่งตรงถึงแผนก"}
                       </span>
                     </p>
-                    {forwardLog && <p className="mt-1 text-xs text-slate-500">ส่งต่อมาโดย {nick(store.userById(forwardLog.actorId)?.name)}{forwardLog.reason && ` · ${forwardLog.reason}`}</p>}
+                    {forwardLog && <p className="mt-1 text-xs text-slate-600">ส่งต่อมาโดย {nick(store.userById(forwardLog.actorId)?.name)}{forwardLog.reason && ` · ${forwardLog.reason}`}</p>}
                   </div>
                   <LinkButton href={`/requests/${request.id}`} variant="ghost">ดูรายละเอียด</LinkButton>
                 </div>

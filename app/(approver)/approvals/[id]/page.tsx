@@ -85,7 +85,7 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
             <div className="space-y-2">
               <h3 className="font-semibold">การพิจารณาของหัวหน้าต้นสังกัด</h3>
               <fieldset className="space-y-3">
-                <legend className="mb-2 text-xs text-slate-500">ด่าน 1 จาก 2 ไม่ต้องขอผู้บริหารอนุมัติ</legend>
+                <legend className="mb-2 text-xs text-slate-600">ด่าน 1 จาก 2 ไม่ต้องขอผู้บริหารอนุมัติ</legend>
                 <h3 className="font-semibold">ตรวจก่อนอนุมัติ</h3>
                 {[
                   ["confirmDetails", "รายละเอียดตรงกับที่คุยกันไว้"],
@@ -110,7 +110,7 @@ function ApprovalDecisionPanel({ requestId }: { requestId: number }) {
             <ArrowLeft size={18} aria-hidden="true" />
             ส่งกลับให้แก้ไข
           </Button>
-          <p className="text-xs text-slate-500">อนุมัติแล้วคำขอไปที่หัวหน้า{request.targetDept} ({head ? nick(head.name) : "-"})</p>
+          <p className="text-xs text-slate-600">อนุมัติแล้วคำขอไปที่หัวหน้า{request.targetDept} ({head ? nick(head.name) : "-"})</p>
         </div>
       )}
     </Card>

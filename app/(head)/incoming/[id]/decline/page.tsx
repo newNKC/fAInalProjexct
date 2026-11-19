@@ -115,7 +115,7 @@ function ForwardRejectForm({ requestId, backHref, onDone }: { requestId: number;
         // เลือกได้ครั้งละแบบ: ปฏิเสธพร้อมเหตุผล หรือส่งต่อไปแผนกอื่น
         <div className="space-y-4">
           <h2 className="font-semibold">ไม่รับงานนี้</h2>
-          <p className="text-xs text-slate-500">เลือกอย่างใดอย่างหนึ่ง · ทุกกรณีต้องมีเหตุผล ผู้ขอจะเห็นเหตุผลนี้</p>
+          <p className="text-xs text-slate-600">เลือกอย่างใดอย่างหนึ่ง · ทุกกรณีต้องมีเหตุผล ผู้ขอจะเห็นเหตุผลนี้</p>
           <Card className="border border-slate-200 p-4">
             <label htmlFor="reject-with-reason" className="flex cursor-pointer items-center gap-3">
               <Checkbox id="reject-with-reason" checked={action === "reject"} onChange={() => toggleAction("reject")} />

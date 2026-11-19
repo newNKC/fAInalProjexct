@@ -12,14 +12,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 </div>
                 <div className="max-w-md">
                     <h1 className="text-4xl leading-tight font-bold">ส่งคำขอ ติดตามงาน<br />ในที่เดียว</h1>
-                    <p className="mt-4 text-sm text-white/80">ขอพัฒนาหรือแก้ไขซอฟต์แวร์ได้จากหน้าเดียว หัวหน้าอนุมัติ แผนกปลายทางแบ่งงาน และคุณเห็นความคืบหน้าทุกขั้น</p>
+                    <p className="mt-4 text-sm text-white/90">ขอพัฒนาหรือแก้ไขซอฟต์แวร์ได้จากหน้าเดียว หัวหน้าอนุมัติ แผนกปลายทางแบ่งงาน และคุณเห็นความคืบหน้าทุกขั้น</p>
                     <ul className="mt-6 flex flex-col gap-3 text-sm">
                         {["ส่งคำขอพร้อมไฟล์แนบ ไม่ต้องส่งต่อทางแชท", "รู้ว่าคำขออยู่ขั้นไหน ใครกำลังทำ กี่เปอร์เซ็นต์", "ผู้บริหารเห็นภาพรวมและงานเกินกำหนดทันที"].map((t) => (
                             <li key={t} className="flex items-center gap-2.5"><CheckCircle1 className="size-5 text-[#A5B4FC]" />{t}</li>
                         ))}
                     </ul>
                 </div>
-                <p className="text-xs text-white/60">© 2569 ระบบจัดการคำขอพัฒนา/แก้ไขซอฟต์แวร์</p>
+                <p className="text-xs text-white/85">© 2569 ระบบจัดการคำขอพัฒนา/แก้ไขซอฟต์แวร์</p>
             </section>
             <section className="flex items-center justify-center p-6 sm:p-10">
                 <div className="w-full max-w-[420px]">{children}</div>

@@ -102,7 +102,7 @@ function IncomingViewPage() {
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
         <Card className="min-w-0">
           <h2 className="mb-1 font-semibold">แตกงานเป็นงานหลักและงานย่อย</h2>
-          <p className="mb-3 text-xs text-slate-500">งานหลักผู้ขอเห็นพร้อม % · งานย่อยเห็นเฉพาะในแผนก</p>
+          <p className="mb-3 text-xs text-slate-600">งานหลักผู้ขอเห็นพร้อม % · งานย่อยเห็นเฉพาะในแผนก</p>
           <div className="space-y-4">
             {plan.map((task, i) => (
               <Card key={i} className="border border-slate-200 bg-slate-50 p-4">
@@ -118,7 +118,7 @@ function IncomingViewPage() {
                   </span>
                   {plan.length > 1 && (
                     <button type="button" aria-label={`ลบงานหลัก ${task.title}`} onClick={() => setPlan((p) => p.filter((_, j) => j !== i))}>
-                      <Trash1 size={16} className="text-slate-400 hover:text-red-600" />
+                      <Trash1 size={16} className="text-slate-600 hover:text-red-600" />
                     </button>
                   )}
                 </div>
@@ -148,14 +148,14 @@ function IncomingViewPage() {
                       </Field>
                       <Field label="กำหนดเสร็จ">
                         <div className="relative">
-                          <Calendar size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+                          <Calendar size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" aria-hidden="true" />
                           <input type="date" className="input pl-10" min={todayISO()} aria-label={`กำหนดเสร็จ งานย่อย ${i + 1}.${k + 1}`}
                             value={subtask.dueDate} onChange={(e) => setSub(i, k, { dueDate: e.target.value })} />
                         </div>
                       </Field>
                       <button type="button" className="self-end pb-3" aria-label={`ลบงานย่อย ${i + 1}.${k + 1}`}
                         onClick={() => setPlan((p) => p.map((m, j) => j === i ? { ...m, subs: m.subs.filter((_, l) => l !== k) } : m))}>
-                        <Trash1 size={16} className="text-slate-400 hover:text-red-600" />
+                        <Trash1 size={16} className="text-slate-600 hover:text-red-600" />
                       </button>
                     </div>
                   ))}
@@ -179,7 +179,7 @@ function IncomingViewPage() {
         <aside className="space-y-4">
           <Card>
             <h2 className="font-semibold">ภาระงานของทีมตอนนี้</h2>
-            <p className="mb-3 text-xs text-slate-500">งานย่อยที่ยังไม่เสร็จ · ความคืบหน้าเฉลี่ย</p>
+            <p className="mb-3 text-xs text-slate-600">งานย่อยที่ยังไม่เสร็จ · ความคืบหน้าเฉลี่ย</p>
             <div className="space-y-4">
               {workload.map((member) => (
                 <div key={member.id}>
@@ -188,7 +188,7 @@ function IncomingViewPage() {
                       <span className="avatar shrink-0" aria-hidden="true">{member.name.slice(0, 1)}</span>
                       <span className="truncate text-sm font-medium text-slate-800">{member.name}</span>
                     </div>
-                    <span className="shrink-0 text-xs text-slate-500">{member.tasks} งาน{member.planned > 0 && ` (+${member.planned} ใหม่)`}</span>
+                    <span className="shrink-0 text-xs text-slate-600">{member.tasks} งาน{member.planned > 0 && ` (+${member.planned} ใหม่)`}</span>
                   </div>
                   <Progress value={member.progress} />
                 </div>
@@ -197,7 +197,7 @@ function IncomingViewPage() {
           </Card>
           <Card>
             <h2 className="font-semibold">ทีมที่รับผิดชอบ</h2>
-            <p className="mb-2 text-xs text-slate-500">ไม่บังคับ · เลือกแล้วสมาชิกทีมขึ้นก่อนในรายชื่อ</p>
+            <p className="mb-2 text-xs text-slate-600">ไม่บังคับ · เลือกแล้วสมาชิกทีมขึ้นก่อนในรายชื่อ</p>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {store.teams.filter((t) => t.dept === user.dept).map((t) => {
                 const isSelected = teamId === t.id;

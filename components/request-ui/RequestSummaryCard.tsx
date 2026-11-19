@@ -46,7 +46,7 @@ export default function RequestSummaryCard({ r, className = "split-layout__wide"
       )}
       <div className="mt-6">
         <div className="cell-sub">เอกสารแนบ</div>
-        {r.attachments.length === 0 && <p className="mt-2 text-sm text-slate-500">ไม่มีไฟล์แนบ</p>}
+        {r.attachments.length === 0 && <p className="mt-2 text-sm text-slate-600">ไม่มีไฟล์แนบ</p>}
         {r.attachments.map((f) => (
           <div key={f.id} className="card mt-2 flex items-center justify-between gap-4 px-3 py-2">
             <div className="flex min-w-0 items-center gap-3">

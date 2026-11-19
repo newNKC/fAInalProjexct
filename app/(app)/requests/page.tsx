@@ -35,7 +35,7 @@ export default function Page() {
             hrefBase={hrefBase} requests={rows} mode="unit"
             actions={store.can("submit") && <LinkButton href="/requests/new" className="inline-flex items-center gap-1 px-3 py-2 text-sm"><Plus size={18} />ส่งคำขอใหม่</LinkButton>}
             banners={<>
-                <div className="mb-3 flex items-center gap-2 text-sm text-slate-500">
+                <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
                     ผู้ขอ: {chip("mine", "ของฉัน")}{chip("all", `ทั้ง${deptKind(user.dept)}`)}
                 </div>
                 {(returned.length > 0 || toAccept.length > 0) && (
