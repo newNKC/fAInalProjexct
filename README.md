@@ -10,6 +10,7 @@ npm run dev
 ```
 
 เปิด http://localhost:3000 แล้วเข้าสู่ระบบด้วยอีเมลด้านล่าง รหัสผ่านเริ่มต้นของทุกบัญชีคือ **`Company@2026`**
+หนือ https://f-a-inal-projexct-hffx.vercel.app/login **vercel**
 
 ## บัญชีตัวอย่าง
 
