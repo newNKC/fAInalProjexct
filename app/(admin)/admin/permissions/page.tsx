@@ -59,7 +59,7 @@ export default function Page() {
             </div>
 
             {/* permission matrix */}
-            <TableRoot className="w-full bg-white text-sm">
+            <TableRoot className="w-full bg-white text-sm shadow-sm">
                 <TableHeader>
                     <TableRow className="bg-page">
                         <TableHead>สิทธิ์</TableHead>

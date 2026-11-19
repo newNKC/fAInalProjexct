@@ -19,7 +19,7 @@ export const fmtSize = (bytes: number) => bytes >= 1024 * 1024 ? `${(bytes / 102
 
 export function Card({ title, hint, children, className, action }: { title?: string, hint?: string, children: ReactNode, className?: string, action?: ReactNode }) {
     return (
-        <section className={cn("rounded-xl bg-white p-5 ring-1 ring-line", className)}>
+        <section className={cn("rounded-xl bg-white p-5 shadow-sm ring-1 ring-line", className)}>
             {(title || action) && (
                 <div className="mb-4 flex items-start gap-3">
                     <div className="flex-1">
@@ -83,8 +83,9 @@ export function RequestSummary({ r, compact }: { r: Request, compact?: boolean }
 }
 
 // ขั้นตอนคำขอ 5 ขั้น + ความคืบหน้ารวม
+// เลขขั้นที่ "กำลังรอ" ของแต่ละสถานะ (ขั้นก่อนหน้าถือว่าผ่านแล้ว) · ส่งกลับ = ตกที่ขั้นอนุมัติ, ปฏิเสธ = ตกที่ขั้นแผนกรับงาน
 const STEP_OF: Record<Status, number> = {
-    pending_approval: 1, returned: 1, pending_target: 2, rejected: 2, in_progress: 3, pending_acceptance: 4, done: 5,
+    pending_approval: 2, returned: 2, pending_target: 3, rejected: 3, in_progress: 4, pending_acceptance: 5, done: 5,
 };
 
 export function RequestStepper({ r }: { r: Request }) {
@@ -95,7 +96,7 @@ export function RequestStepper({ r }: { r: Request }) {
     const failed = r.status === "returned" || r.status === "rejected";
     const steps = [
         { label: "ส่งคำขอ", who: nick(store.userById(r.requesterId)?.name) },
-        { label: "หัวหน้าต้นสังกัดอนุมัติ", who: approver ? nick(approver.name) : "รอพิจารณา" },
+        { label: "หัวหน้าต้นสังกัดอนุมัติ", who: approver ? nick(approver.name) : current > 2 ? "ข้ามขั้น (ไม่มีหัวหน้า)" : "รอพิจารณา" },
         { label: `${r.targetDept} รับงาน`, who: head ? nick(head.name) : "-" },
         { label: "ดำเนินการ", who: `${requestProgress(r, store.tasks)}%` },
         { label: "ตรวจรับงาน", who: "ผู้ขอ" },

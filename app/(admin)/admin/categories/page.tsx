@@ -81,7 +81,7 @@ function CategoriesPage() {
                         <label className="relative block w-[260px] max-w-[calc(100vw-100px)]">
                             <span className="sr-only">ค้นหาหมวดคำขอ</span>
                             <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาชื่อหรือคำอธิบายหมวด"
-                                className="h-11 w-full rounded-lg border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                                className="h-11 w-full rounded-lg border border-slate-300 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
                             <Search1 className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-slate-600" />
                         </label>
                         <NotificationBell />
@@ -90,7 +90,7 @@ function CategoriesPage() {
 
                 <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.65fr_1fr]">
                     {/* รายการหมวดคำขอทั้งหมด */}
-                    <section aria-label="หมวดคำขอทั้งหมด" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <section aria-label="หมวดคำขอทั้งหมด" className="rounded-xl border border-slate-300 bg-white p-6 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-800">หมวดคำขอทั้งหมด</h2>
@@ -98,7 +98,7 @@ function CategoriesPage() {
                             </div>
                             <SortSelect options={options} value={sort} onChange={setSort} />
                         </div>
-                        <div className="mt-2 divide-y divide-slate-200">
+                        <div className="mt-2 divide-y divide-slate-300">
                             {sortBy(filteredCategories, options, sort).map((category) => (
                                 <div key={category.id}
                                     className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 py-4 sm:grid-cols-[100px_minmax(0,1fr)_auto_auto_auto] ${category.active ? '' : 'opacity-60'}`}>
@@ -124,13 +124,13 @@ function CategoriesPage() {
                             ))}
                             {filteredCategories.length === 0 && <p className="py-8 text-center text-xs text-slate-600">ไม่พบหมวดคำขอที่ค้นหา</p>}
                         </div>
-                        <p className="border-t border-slate-200 pt-3 text-xs text-slate-600">
+                        <p className="border-t border-slate-300 pt-3 text-xs text-slate-600">
                             ลบได้เฉพาะหมวดที่ยังไม่มีคำขอ · หมวดที่ใช้งานแล้วให้แก้ไขเป็น “ปิดใช้งาน” แทน (จะไม่แสดงในแบบฟอร์มส่งคำขอ)
                         </p>
                     </section>
 
                     {/* ฟอร์มเพิ่ม/แก้ไขหมวดคำขอ */}
-                    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <section className="rounded-xl border border-slate-300 bg-white p-6 shadow-sm">
                         <h2 className="text-lg font-bold text-slate-800">{editingId ? 'แก้ไขหมวดคำขอ' : 'เพิ่มหมวดใหม่'}</h2>
                         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
                             <label className="block space-y-2 text-sm font-semibold text-slate-700">
@@ -160,7 +160,7 @@ function CategoriesPage() {
                             {formError && <p role="alert" className="text-sm text-red-600">{formError}</p>}
                             <div className="flex gap-2">
                                 {editingId && (
-                                    <button type="button" onClick={resetForm} className="h-11 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+                                    <button type="button" onClick={resetForm} className="h-11 rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
                                 )}
                                 <button type="submit" className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
                                     <Plus className="h-4 w-4" />

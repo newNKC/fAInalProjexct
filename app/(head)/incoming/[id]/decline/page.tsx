@@ -116,7 +116,7 @@ function ForwardRejectForm({ requestId, backHref, onDone }: { requestId: number;
         <div className="space-y-4">
           <h2 className="font-semibold">ไม่รับงานนี้</h2>
           <p className="text-xs text-slate-600">เลือกอย่างใดอย่างหนึ่ง · ทุกกรณีต้องมีเหตุผล ผู้ขอจะเห็นเหตุผลนี้</p>
-          <Card className="border border-slate-200 p-4">
+          <Card className="border border-slate-300 p-4">
             <label htmlFor="reject-with-reason" className="flex cursor-pointer items-center gap-3">
               <Checkbox id="reject-with-reason" checked={action === "reject"} onChange={() => toggleAction("reject")} />
               <span className="font-medium">ปฏิเสธพร้อมเหตุผล</span>
@@ -128,7 +128,7 @@ function ForwardRejectForm({ requestId, backHref, onDone }: { requestId: number;
               </Field>
             </div>
           </Card>
-          <Card className="border border-slate-200 p-4">
+          <Card className="border border-slate-300 p-4">
             <label htmlFor="forward-to-department" className="flex cursor-pointer items-start gap-3">
               <Checkbox id="forward-to-department" checked={action === "forward"} onChange={() => toggleAction("forward")} />
               <span className="font-medium">ส่งต่อแผนกอื่น (ผู้ขอเลือกแผนกผิด)</span>

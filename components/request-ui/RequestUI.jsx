@@ -51,7 +51,7 @@ export const Button = ({ variant = "primary", block = false, className = "", ...
 );
 
 export const Card = ({ pad = true, className = "", children }) => (
-  <TailgridsCard className={cn("gap-0 rounded-xl border border-line bg-white", pad && "p-6", className)}>
+  <TailgridsCard className={cn("gap-0 rounded-xl border border-line bg-white shadow-sm", pad && "p-6", className)}>
     {children}
   </TailgridsCard>
 );

@@ -100,7 +100,7 @@ export default function MyTasksPage() {
                 <span className="sr-only">ค้นหางานด้วยชื่อหรือรหัสคำขอ</span>
                 <input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="ค้นหารหัสหรือชื่องาน"
-                  className="h-11 w-full rounded-lg border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white py-3 pl-4 pr-10 text-sm text-slate-700 outline-none placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" />
                 <Search1 className="pointer-events-none absolute right-2.5 top-3 h-4 w-4 text-slate-600" />
               </label>
               <NotificationBell />
@@ -134,7 +134,7 @@ export default function MyTasksPage() {
           </section>
 
           {/* --- TASKS TABLE SECTION --- */}
-          <section aria-label="รายการงาน" className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <section aria-label="รายการงาน" className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left">
                 <thead className="bg-slate-100/90 text-xs font-semibold text-slate-600">
@@ -146,7 +146,7 @@ export default function MyTasksPage() {
                     {th('progress', 'ความคืบหน้า (กดเพื่ออัปเดต)', 'w-[24%]')}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-sm">
+                <tbody className="divide-y divide-slate-300 text-sm">
                   {filteredTasks.map((task) => (
                     <TaskRow key={task.id} task={task} editing={editing === task.id}
                       onEdit={() => setEditing(editing === task.id ? null : task.id)} onUpdateProgress={handleUpdateProgress} />
@@ -176,7 +176,7 @@ export default function MyTasksPage() {
 /** คอมโพเนนต์ย่อย: การ์ดแสดงสถิติสรุปงานแต่ละรายการ */
 function SummaryCard({ label, value, detail, dotClass }: { label: string; value: number; detail: string; dotClass: string }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-600">
         <span className={`h-2 w-2 rounded-full ${dotClass}`} />
         {label}
@@ -196,7 +196,7 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
   const statusLabels = { in_progress: 'กำลังดำเนินการ', overdue: 'เกินกำหนด', completed: 'เสร็จสิ้น' }[task.status];
 
   return (
-    <tr className="transition-colors hover:bg-slate-50/80">
+    <tr className="transition-colors even:bg-slate-50 hover:bg-indigo-50/60">
       <td className="px-4 py-4">
         <p className="font-semibold text-slate-800">{task.title}</p>
         <Link href={`/requests/${task.requestId}`} className="mt-1 block text-xs text-slate-600 hover:text-indigo-600 hover:underline">
@@ -219,7 +219,7 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
           <div className="flex flex-wrap gap-1" role="group" aria-label={`เลือกความคืบหน้า ${task.title}`}>
             {STEPS.map((v) => (
               <button key={v} type="button" onClick={() => onUpdateProgress(task, v)}
-                className={`rounded-md px-2 py-1 text-xs font-semibold ring-1 ${v === task.progress ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-slate-600 ring-slate-200 hover:bg-indigo-50'}`}>
+                className={`rounded-md px-2 py-1 text-xs font-semibold ring-1 ${v === task.progress ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-slate-600 ring-slate-300 hover:bg-indigo-50'}`}>
                 {v}%
               </button>
             ))}

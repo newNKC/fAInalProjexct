@@ -61,7 +61,7 @@ export default function SortTable<T>({ rows, columns, rowKey, rowHref, initialSo
 
     return (
         <div>
-            <TableRoot className="w-full bg-white text-sm">
+            <TableRoot className="w-full bg-white text-sm shadow-sm">
                 <TableHeader>
                     <TableRow className="bg-page">
                         {columns.map((c) => (
@@ -89,7 +89,7 @@ export default function SortTable<T>({ rows, columns, rowKey, rowHref, initialSo
                     {shown.map((row) => {
                         const href = rowHref?.(row);
                         return (
-                            <TableRow key={rowKey(row)} className={cn(href && "cursor-pointer hover:bg-page")}
+                            <TableRow key={rowKey(row)} className={cn("even:bg-slate-50", href && "cursor-pointer hover:bg-brand-soft/60")}
                                 onClick={href ? (e) => open(e, href) : undefined}
                                 onAuxClick={href ? (e) => e.button === 1 && open(e, href) : undefined}>
                                 {columns.map((c, i) => (

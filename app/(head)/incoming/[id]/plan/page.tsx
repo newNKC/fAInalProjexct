@@ -105,7 +105,7 @@ function IncomingViewPage() {
           <p className="mb-3 text-xs text-slate-600">งานหลักผู้ขอเห็นพร้อม % · งานย่อยเห็นเฉพาะในแผนก</p>
           <div className="space-y-4">
             {plan.map((task, i) => (
-              <Card key={i} className="border border-slate-200 bg-slate-50 p-4">
+              <Card key={i} className="border border-slate-300 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="flex flex-1 items-center gap-2 font-semibold text-slate-800">
                     <Layers2 size={18} className="shrink-0 text-[#4338CA]" aria-hidden="true" />
@@ -124,7 +124,7 @@ function IncomingViewPage() {
                 </div>
                 <div className="mt-3 space-y-3">
                   {task.subs.map((subtask, k) => (
-                    <div key={k} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+                    <div key={k} className="grid gap-3 rounded-lg border border-slate-300 bg-white p-3 md:grid-cols-[1fr_1fr_1fr_auto]">
                       <Field label={`งานย่อย ${k + 1}`}>
                         <input className="input" aria-label={`งานย่อย ${i + 1}.${k + 1}`} value={subtask.title} placeholder="ชื่องานย่อย" onChange={(e) => setSub(i, k, { title: e.target.value })} />
                       </Field>

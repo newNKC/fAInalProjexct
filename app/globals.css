@@ -45,9 +45,9 @@
   --color-white-60: #ffffff99;
 
   /* Border Color */
-  --border-color-base-50: #f3f4f6;
-  --border-color-base-100: #e5e7eb;
-  --border-color-base-200: #e5e7eb;
+  --border-color-base-50: #e5e7eb;
+  --border-color-base-100: #d1d5db;
+  --border-color-base-200: #d1d5db;
   --border-color-base-300: #d1d5db;
 
   --color-chart-line: #e5e7eb;
@@ -507,11 +507,11 @@
   --color-sidebar-active: #312E81;
   --color-sidebar-ink: #E0E7FF;
 
-  --color-page: #F8FAFC;
+  --color-page: #EEF2F6;
   --color-ink: #0F172A;
   --color-ink-2: #334155;
   --color-ink-3: #475569;
-  --color-line: #E2E8F0;
+  --color-line: #CBD5E1;
 
   --color-role-requester: #2563EB;   --color-role-requester-soft: #DBEAFE;
   --color-role-approver: #7C3AED;    --color-role-approver-soft: #EDE9FE;

@@ -23,7 +23,7 @@ export default function TeamsPage() {
   return <Guard roles={['head', 'admin']} perm="teams"><Teams /></Guard>;
 }
 
-const inputClass = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
+const inputClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
 
 function Teams() {
   const store = useStore();
@@ -124,7 +124,7 @@ function Teams() {
             <label className="relative block w-[280px] max-w-[calc(100vw-110px)]">
               <span className="sr-only">ค้นหาทีมหรือสมาชิก</span>
               <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาทีมหรือสมาชิก"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-4 pr-10 text-sm text-slate-700 shadow-xs outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-4 pr-10 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
               <Search1 className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
             </label>
             <NotificationBell />
@@ -132,7 +132,7 @@ function Teams() {
         </header>
 
         {/* --- FILTER & ACTION BAR SECTION --- */}
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+        <section className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* ปุ่มสลับมุมมองระหว่าง "ทีมทั้งหมด" และ "เฉพาะทีมของฉัน" */}
             <div className="flex flex-wrap items-center gap-2.5">
@@ -141,13 +141,13 @@ function Teams() {
                 <button key={o.label} type="button" aria-pressed={onlyMine === o.v} onClick={() => setOnlyMine(o.v)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${onlyMine === o.v
                     ? 'border border-indigo-600 bg-indigo-50 text-indigo-700'
-                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                    : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
                   {o.label}
                 </button>
               ))}
             </div>
             <button type="button" onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700">
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
               <Plus className="h-4 w-4" />
               สร้างทีมใหม่
             </button>
@@ -174,7 +174,7 @@ function Teams() {
             { label: 'สมาชิกในทีม', value: memberCount, detail: 'นับสมาชิกที่ไม่ซ้ำกัน', dot: 'bg-emerald-500' },
             { label: 'แผนกที่ดูแล', value: departmentCount, detail: 'แผนกที่มีทีมรับผิดชอบ', dot: 'bg-sky-500' },
           ].map((item) => (
-            <article key={item.label} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <article key={item.label} className="rounded-2xl border border-slate-300 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
                 <span className={`h-2 w-2 rounded-full ${item.dot}`} />
                 <span>{item.label}</span>
@@ -196,7 +196,7 @@ function Teams() {
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {sortBy(filteredTeams, options, sort).map((team) => (
-              <article key={team.id} className="flex min-h-[320px] flex-col rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs transition-shadow hover:shadow-md">
+              <article key={team.id} className="flex min-h-[320px] flex-col rounded-2xl border border-slate-300 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
                 {/* หัวการ์ด: ชื่อทีม แผนก หัวหน้าทีม ปุ่มแก้ไข/ลบ */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -207,7 +207,7 @@ function Teams() {
                   </div>
                   <div className="flex gap-1">
                     <button type="button" aria-label={`แก้ไข${team.name}`} onClick={() => openEditModal(team)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600">
                       <Pencil1 className="h-4 w-4" />
                     </button>
                     <button type="button" aria-label={`ลบ${team.name}`}
@@ -216,7 +216,7 @@ function Teams() {
                         body: usedBy(team) ? `คำขอ ${usedBy(team)} รายการที่ผูกกับทีมนี้จะกลายเป็น "ไม่ระบุทีม"` : 'ลบแล้วกู้คืนไม่ได้',
                         run: () => { store.removeTeam(team.id); store.showToast(`ลบทีม “${team.name}” แล้ว`); },
                       })}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200/70 text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600">
                       <Trash1 className="h-4 w-4" />
                     </button>
                   </div>
@@ -224,7 +224,7 @@ function Teams() {
                 {/* คำอธิบายทีม */}
                 <p className="mt-3.5 min-h-10 text-sm leading-relaxed text-slate-600">{team.description || '—'}</p>
                 {/* หัวข้อสมาชิกในทีม */}
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-4">
                   <h4 className="text-sm font-semibold text-slate-800">สมาชิกในทีม</h4>
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{team.memberIds.length} คน</span>
                 </div>
@@ -276,7 +276,7 @@ function Teams() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[1px]"
           onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}
           onKeyDown={(event) => event.key === 'Escape' && closeModal()}>
-          <section role="dialog" aria-modal="true" aria-labelledby="team-modal-title" className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <section role="dialog" aria-modal="true" aria-labelledby="team-modal-title" className="w-full max-w-lg rounded-2xl border border-slate-300 bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <h2 id="team-modal-title" className="text-lg font-bold text-slate-900">{modalTitle}{modalTeam && modal.type === 'member' ? ` · ${modalTeam.name}` : ''}</h2>
               <button type="button" aria-label="ปิด" onClick={closeModal} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100">
@@ -303,7 +303,7 @@ function Teams() {
                   <label className="block space-y-1.5 text-sm font-medium text-slate-700">
                     รายละเอียดทีม
                     <textarea required rows={3} value={teamDescription} onChange={(event) => setTeamDescription(event.target.value)}
-                      className="w-full resize-y rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      className="w-full resize-y rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                       placeholder="อธิบายหน้าที่หรือความรับผิดชอบของทีม" />
                   </label>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -324,7 +324,7 @@ function Teams() {
                 </>
               )}
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={closeModal} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+                <button type="button" onClick={closeModal} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
                 <button type="submit" className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
                   {modal.type === 'create' ? 'สร้างทีม' : modal.type === 'edit' ? 'บันทึก' : 'เพิ่มสมาชิก'}
                 </button>

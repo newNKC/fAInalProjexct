@@ -145,7 +145,7 @@ function Dashboard() {
 
         {/* --- PERIOD FILTER SECTION --- */}
         {/* แถบสำหรับเลือกช่วงเวลาข้อมูล และแสดงช่วงวันที่ปัจจุบัน */}
-        <section aria-label="ตัวกรองช่วงเวลา" className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section aria-label="ตัวกรองช่วงเวลา" className="mb-6 rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
           {scopes.length > 1 && (
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-xs font-medium text-slate-600">ขอบเขต:</span>
@@ -153,7 +153,7 @@ function Dashboard() {
                 <button key={s.value} type="button" aria-pressed={scope === s.value} onClick={() => setScope(s.value)}
                   className={`rounded-full border px-4 py-2 text-xs transition-colors ${scope === s.value
                     ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
                   {s.label}
                 </button>
               ))}
@@ -168,7 +168,7 @@ function Dashboard() {
                   onClick={() => setSelectedPeriod(period.value)} // เปลี่ยนช่วงเวลา → ตัวเลขและกราฟคำนวณใหม่
                   className={`rounded-full border px-4 py-2 text-xs transition-colors ${selectedPeriod === period.value
                     ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
                   {period.label}
                 </button>
               ))}
@@ -176,7 +176,7 @@ function Dashboard() {
 
             {/* ช่วงวันที่ · เลือก "กำหนดเอง" แล้วเลือกวันได้ */}
             {selectedPeriod === 'custom' ? (
-              <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600">
+              <div className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-600">
                 <Calendar className="h-4 w-4 text-slate-600" />
                 <input aria-label="ตั้งแต่วันที่" type="date" className="outline-none" value={custom.from} max={custom.to || today} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} />
                 <span>–</span>
@@ -184,7 +184,7 @@ function Dashboard() {
               </div>
             ) : (
               <button type="button" onClick={() => setSelectedPeriod('custom')} title="กำหนดช่วงวันที่เอง"
-                className="inline-flex h-11 min-w-[260px] items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-600 hover:bg-slate-50">
+                className="inline-flex h-11 min-w-[260px] items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-600 hover:bg-slate-50">
                 <span>{rangeText}</span>
                 <Calendar className="h-4 w-4 text-slate-600" />
               </button>
@@ -201,7 +201,7 @@ function Dashboard() {
         {/* --- SUMMARY CARDS SECTION --- */}
         <section aria-label="สรุปคำขอ" className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           {summary.map((item) => (
-            <article key={item.label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article key={item.label} className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
                 <span className={`h-2 w-2 rounded-full ${item.color}`} />
                 {item.label}
@@ -215,7 +215,7 @@ function Dashboard() {
         {/* --- CHARTS SECTION (Monthly Requests & Categories) --- */}
         <section className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
           {/* กราฟแท่งคำขอรายเดือน (ช่วงสั้นแสดงรายวัน) */}
-          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-7">
+          <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-7">
             <h2 className="text-lg font-semibold text-slate-800">{byMonth ? 'คำขอรายเดือน' : 'คำขอรายวัน'}</h2>
             <p className="mt-1 text-xs text-slate-600">{rangeText}</p>
             <div className="mt-6 flex h-[175px] items-end justify-between gap-1">
@@ -232,7 +232,7 @@ function Dashboard() {
           </article>
 
           {/* สถิติตามหมวดคำขอ */}
-          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-5">
+          <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-5">
             <h2 className="text-lg font-semibold text-slate-800">ตามหมวดคำขอ</h2>
             <div className="mt-5 space-y-4">
               {categories.map((category) => (
@@ -248,7 +248,7 @@ function Dashboard() {
 
         {/* --- DEPARTMENTS & OVERDUE --- */}
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-          <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-6">
+          <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-6">
             <h2 className="text-lg font-semibold text-slate-800">ตามแผนกที่ส่งคำขอ</h2>
             <div className="mt-5 space-y-4">
               {departments.length === 0 && <p className="text-sm text-slate-600">ไม่มีคำขอในช่วงนี้</p>}
@@ -274,12 +274,12 @@ function Dashboard() {
           </article>
 
           {/* รายการงานเกินกำหนด */}
-          <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-6">
+          <article className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm xl:col-span-6">
             <div className="flex items-center justify-between gap-3 bg-slate-100/90 px-5 py-3 text-xs font-semibold text-slate-600">
               <h2>งานเกินกำหนด ({overdue.length})</h2>
               <SortSelect options={overdueOptions} value={overdueSort} onChange={setOverdueSort} />
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-200">
               {overdue.length === 0 && <p className="px-5 py-8 text-center text-sm text-slate-600">ไม่มีงานเกินกำหนดในช่วงนี้</p>}
               {sortBy(overdue, overdueOptions, overdueSort).map((task) => (
                 <Link key={task.id} href={`/requests/${task.id}`} className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50">
