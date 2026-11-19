@@ -4,6 +4,7 @@
 // ปรับให้ใช้ข้อมูลจริงจาก store + เติมส่วนที่ขาด:
 //  - ชิปช่วงเวลาตาม requirement (รายปี / รายเดือน / รายอาทิตย์ / 3 วัน / วันนี้ / ทั้งหมด / กำหนดเอง) และกรองตัวเลข+กราฟจริง
 //  - ขอบเขตตามโรล: หัวหน้าต้นสังกัด = คำขอของฝ่ายตัวเอง · หัวหน้าแผนก = คำขอที่เข้าแผนก · ผู้บริหาร/ผู้ดูแลระบบ = ทุกแผนก
+//  - ขอบเขต "ทุกแผนก" (ผู้บริหาร/ผู้ดูแลระบบ) เลือกเจาะดูทีละแผนกได้ ทั้งคำขอ "จาก" แผนกนั้น และคำขอที่ "ส่งถึง" แผนกนั้น
 //  - ช่องค้นหา/กระดิ่งใช้งานได้จริง · งานเกินกำหนดกดเปิดได้และเรียงลำดับได้ · เพิ่มกราฟตามแผนกปลายทาง
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -73,19 +74,26 @@ function Dashboard() {
   // --- STATE MANAGEMENT --- (เก็บใน URL เพื่อให้กดย้อนกลับ/ส่งลิงก์แล้วยังเห็นช่วงเดิม)
   const [scopeParam, setScope] = useQueryState<Scope>('scope', scopes[0].value);
   const scope = scopes.some((s) => s.value === scopeParam) ? scopeParam : scopes[0].value;
+  // เจาะดูทีละแผนก (เฉพาะขอบเขตทุกแผนก) · '' = ทุกแผนก · side: from = คำขอจากแผนกนี้, to = คำขอที่ส่งถึงแผนกนี้
+  const [deptParam, setDept] = useQueryState<string>('dept', '');
+  const [sideParam, setSide] = useQueryState<'from' | 'to'>('side', 'from');
+  const dept = scope === 'all' && store.depts.includes(deptParam) ? deptParam : '';
+  const side = sideParam === 'to' ? 'to' : 'from';
   const [selectedPeriod, setSelectedPeriod] = useQueryState<Period>('period', 'year');
   const [custom, setCustom] = useState({ from: '', to: '' });
   const [overdueSort, setOverdueSort] = useState('late');
 
   const inScope = store.requests.filter((r) =>
-    scope === 'all' ? true : scope === 'target' ? r.targetDept === user.dept : store.userById(r.requesterId)?.dept === user.dept);
+    scope === 'all'
+      ? !dept || (side === 'to' ? r.targetDept === dept : store.userById(r.requesterId)?.dept === dept)
+      : scope === 'target' ? r.targetDept === user.dept : store.userById(r.requesterId)?.dept === user.dept);
   const range = rangeOf(selectedPeriod, today, custom);
   const rows = inScope.filter((r) => { const d = r.createdAt.slice(0, 10); return d >= range.from && d <= range.to; });
   const firstDay = rows.map((r) => r.createdAt.slice(0, 10)).sort()[0] ?? today;
   const from = range.from === '2000-01-01' ? firstDay : range.from;
   const rangeText = `${thaiDate(from, true)} – ${thaiDate(range.to, true)}`;
   const periodLabel = periods.find((p) => p.value === selectedPeriod)!.label;
-  const scopeLabel = scopes.find((s) => s.value === scope)!.label;
+  const scopeLabel = dept ? (side === 'to' ? `คำขอที่ส่งถึง${dept}` : `คำขอจาก${dept}`) : scopes.find((s) => s.value === scope)!.label;
 
   // --- การ์ดสรุป ---
   const approvedStatuses = ['pending_target', 'in_progress', 'pending_acceptance', 'done'];
@@ -135,7 +143,7 @@ function Dashboard() {
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-[30px] font-bold leading-9 tracking-tight text-slate-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-600">{scope === 'all' ? 'ภาพรวมทุกแผนก · ดูอย่างเดียว' : `ภาพรวม${scopeLabel}`}</p>
+            <p className="mt-1 text-sm text-slate-600">{scope === 'all' ? (dept ? `ภาพรวม${scopeLabel} · ดูอย่างเดียว` : 'ภาพรวมทุกแผนก · ดูอย่างเดียว') : `ภาพรวม${scopeLabel}`}</p>
           </div>
           <div className="flex items-center gap-2">
             <GlobalSearch />
@@ -155,6 +163,24 @@ function Dashboard() {
                     ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700'
                     : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
                   {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {scope === 'all' && (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <label htmlFor="dash-dept" className="mr-1 text-xs font-medium text-slate-600">แผนก:</label>
+              <select id="dash-dept" value={dept} onChange={(e) => setDept(e.target.value)}
+                className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-800 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                <option value="">ทุกแผนก</option>
+                {store.depts.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              {dept && ([['from', 'คำขอจากแผนกนี้'], ['to', 'คำขอที่ส่งถึงแผนกนี้']] as const).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={side === v} onClick={() => setSide(v)}
+                  className={`rounded-full border px-4 py-2 text-xs transition-colors ${side === v
+                    ? 'border-indigo-500 bg-indigo-50 font-semibold text-indigo-700'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                  {label}
                 </button>
               ))}
             </div>
