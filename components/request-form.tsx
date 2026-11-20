@@ -185,7 +185,7 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                 {Object.keys(errors).length > 0 && <p role="alert" className="mt-3 text-sm text-red-600">ข้อมูลยังไม่ถูกต้อง {Object.keys(errors).length} ช่อง · ดูข้อความสีแดงใต้ช่อง</p>}
 
                 <div className="mt-5 flex justify-end gap-3">
-                    <Link href={cancelHref} className={buttonStyles({ appearance: "outline", size: "sm" })}>ยกเลิก</Link>
+                    <Link href={cancelHref} className={cn(buttonStyles({ appearance: "outline", size: "sm" }), "whitespace-nowrap")}>ยกเลิก</Link>
                     <Button size="sm" type="submit" disabled={submitted}><Send1 />{submitLabel}</Button>
                 </div>
             </Card>

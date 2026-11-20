@@ -14,6 +14,7 @@ import { NoAccess } from "@/components/role-shell";
 import { canApprove } from "@/data/requests";
 import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
+import { cn } from "@/utils/cn";
 
 // รายละเอียดคำขอ (ทุกคนที่มีสิทธิ์ดูใช้หน้าเดียวกัน · ปุ่มที่เห็นขึ้นกับว่าเป็นใครกับคำขอนี้)
 export default function Page() {
@@ -42,7 +43,7 @@ export default function Page() {
             <div className="mb-4 flex flex-col gap-2">
                 {r.status === "returned" && (
                     <Banner tone="warning" icon={<Reply />}
-                        action={mine && <Link href={`/requests/${r.id}/edit`} className={buttonStyles({ size: "sm" })}>แก้ไขและส่งใหม่</Link>}>
+                        action={mine && <Link href={`/requests/${r.id}/edit`} className={cn(buttonStyles({ size: "sm" }), "whitespace-nowrap")}>แก้ไขและส่งใหม่</Link>}>
                         ถูกส่งกลับให้แก้ไข{lastReason ? ` · เหตุผล: ${lastReason.reason}` : ""}
                     </Banner>
                 )}
@@ -69,15 +70,15 @@ export default function Page() {
                 )}
                 {r.status === "pending_acceptance" && !mine && <Banner tone="info" icon={<InfoCircle />}>งานเสร็จครบ 100% แล้ว · รอผู้ขอตรวจรับ</Banner>}
                 {canApprove(store.users, user, r) && (
-                    <Banner tone="info" icon={<Shield1Check />} action={<Link href={`/approvals/${r.id}`} className={buttonStyles({ size: "sm" })}>พิจารณา</Link>}>
+                    <Banner tone="info" icon={<Shield1Check />} action={<Link href={`/approvals/${r.id}`} className={cn(buttonStyles({ size: "sm" }), "whitespace-nowrap")}>พิจารณา</Link>}>
                         คำขอนี้รอคุณอนุมัติในฐานะหัวหน้าต้นสังกัด
                     </Banner>
                 )}
                 {isHead && r.status === "pending_target" && (
                     <Banner tone="info" icon={<InfoCircle />} action={
                         <div className="flex gap-2">
-                            <Link href={`/incoming/${r.id}/decline`} className={buttonStyles({ size: "sm", appearance: "outline" })}>ไม่รับงาน</Link>
-                            <Link href={`/incoming/${r.id}/plan`} className={buttonStyles({ size: "sm" })}>รับงานและแบ่งงาน</Link>
+                            <Link href={`/incoming/${r.id}/decline`} className={cn(buttonStyles({ size: "sm", appearance: "outline" }), "whitespace-nowrap")}>ไม่รับงาน</Link>
+                            <Link href={`/incoming/${r.id}/plan`} className={cn(buttonStyles({ size: "sm" }), "whitespace-nowrap")}>รับงานและแบ่งงาน</Link>
                         </div>
                     }>คำขอนี้รอคุณพิจารณาในฐานะหัวหน้า{r.targetDept}</Banner>
                 )}

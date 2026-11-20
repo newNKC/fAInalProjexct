@@ -484,6 +484,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* ปุ่ม ป้าย และแท็กทุกตัวห้ามตัดขึ้นบรรทัดใหม่ (เช่น "รีเซ็ตรหัสผ่าน", "ใช้งานได้")
+     ถ้าที่ไม่พอ ตารางจะเลื่อนแนวนอนแทน · อยากให้ตัดบรรทัดได้ ใส่ whitespace-normal ทับ */
+  button, [role="button"], a.btn, .btn,
+  .inline-flex.rounded-full, .inline-flex.rounded-md, .badge {
+    white-space: nowrap;
+  }
 }
 
 @keyframes pulse {

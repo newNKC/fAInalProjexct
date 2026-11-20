@@ -131,23 +131,23 @@ function UsersPage() {
                 },
                 {
                     key: "account", label: "บัญชี", sortValue: (u) => account(u).rank, render: (u) => (
-                        <span className={cn("rounded-md px-2 py-0.5 text-xs font-semibold", account(u).cls)}>{account(u).label}</span>
+                        <span className={cn("inline-flex rounded-md px-2 py-0.5 text-xs font-semibold whitespace-nowrap", account(u).cls)}>{account(u).label}</span>
                     ),
                 },
                 {
                     key: "edit", label: "", className: "text-right", render: (u) => (
-                        <div className="flex justify-end gap-1">
+                        <div className="flex flex-nowrap justify-end gap-0.5">
                             {account(u).locked && (
-                                <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft [&>svg]:size-4")}
+                                <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "gap-1 px-2 text-brand hover:bg-brand-soft [&>svg]:size-4")}
                                     onClick={() => { store.unlockUser(u.id); store.showToast(`ปลดล็อกบัญชี ${u.name} แล้ว`); }}>ปลดล็อก</button>
                             )}
-                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
-                                onClick={() => setResetting(u)}>
-                                <Locked3 />รีเซ็ตรหัสผ่าน
+                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "gap-1 px-2 text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
+                                onClick={() => setResetting(u)} title="รีเซ็ตรหัสผ่าน" aria-label={`รีเซ็ตรหัสผ่านของ ${u.name}`}>
+                                <Locked3 /><span className="hidden min-[1400px]:inline">รีเซ็ตรหัสผ่าน</span>
                             </button>
-                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
-                                onClick={() => openEdit(u)}>
-                                <Pencil1 />แก้โรล
+                            <button className={cn(buttonStyles({ variant: "ghost", size: "xs" }), "gap-1 px-2 text-brand hover:bg-brand-soft hover:text-brand-strong [&>svg]:size-4")}
+                                onClick={() => openEdit(u)} title="แก้โรล" aria-label={`แก้โรลของ ${u.name}`}>
+                                <Pencil1 /><span className="hidden min-[1400px]:inline">แก้โรล</span>
                             </button>
                         </div>
                     ),

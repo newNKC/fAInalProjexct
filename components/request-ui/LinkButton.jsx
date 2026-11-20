@@ -13,7 +13,7 @@ const VARIANTS = {
 
 export default function LinkButton({ href, variant = "primary", className = "", children }) {
   return (
-    <Link href={href} className={cn(buttonStyles(VARIANTS[variant]), className)}>
+    <Link href={href} className={cn(buttonStyles(VARIANTS[variant]), "whitespace-nowrap", className)}>
       {children}
     </Link>
   );
