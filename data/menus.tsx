@@ -31,7 +31,8 @@ const M: Record<string, MenuDef> = {
 export const roleMenus: Record<Role, MenuDef[]> = {
     requester: [M.requests, M.newRequest],
     approver: [M.approvals, M.requests, M.newRequest, M.dashboard],
-    head: [M.incoming, M.deptRequests, M.requests, M.newRequest, M.teams, M.dashboard],
+    // หัวหน้าแผนกมอบงานย่อยให้ตัวเองได้ → มีเมนู "งานของฉัน" (role-shell ซ่อนไว้ถ้ายังไม่มีงานที่ได้รับ)
+    head: [M.incoming, M.tasks, M.deptRequests, M.requests, M.newRequest, M.teams, M.dashboard],
     assignee: [M.tasks, M.deptRequests, M.requests, M.newRequest],
     executive: [M.dashboard],
     admin: [M.dashboard, M.users, M.categories, M.teams, M.permissions],

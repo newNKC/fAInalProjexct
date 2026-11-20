@@ -24,7 +24,7 @@ export function actionItems(store: Store): ActionItem[] {
     const fixes = store.requests.filter((r) => r.status === "in_progress" && r.fixReason && r.targetDept === u.dept
         && (u.roles.includes("head") || store.tasks.some((t) => t.requestId === r.id && t.assigneeId === u.id)));
     for (const r of fixes) items.push({ href: `/requests/${r.id}`, label: `ผู้ขอขอให้แก้ไข ${r.code}: ${r.fixReason}`, count: 1 });
-    if (u.roles.includes("assignee") && store.can("progress")) {
+    if ((u.roles.includes("assignee") || u.roles.includes("head")) && store.can("progress")) {
         const n = store.tasks.filter((t) => t.assigneeId === u.id && t.progress < 100 && isLeafTask(t, store.tasks)
             && store.requests.find((r) => r.id === t.requestId)?.status === "in_progress").length;
         if (n) items.push({ href: "/tasks", label: "งานที่ยังทำไม่เสร็จ", count: n });

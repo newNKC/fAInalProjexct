@@ -41,7 +41,11 @@ export default function RoleShell({ roles, perm, children }: { roles?: Role[], p
     }
 
     const counts = menuCounts(store);
-    const menu = menuFor(user, store.hasPerm).map((m) => ({ ...m, count: counts[m.href] || undefined }));
+    // หัวหน้าแผนกที่ไม่ใช่ผู้รับงาน เห็น "งานของฉัน" เฉพาะเมื่อมีงานย่อยที่มอบให้ตัวเอง
+    const hasOwnTasks = user.roles.includes("assignee") || store.tasks.some((t) => t.assigneeId === user.id);
+    const menu = menuFor(user, store.hasPerm)
+        .filter((m) => m.href !== "/tasks" || hasOwnTasks)
+        .map((m) => ({ ...m, count: counts[m.href] || undefined }));
     const allowed = !roles || roles.some((r) => user.roles.includes(r));
 
     return (
