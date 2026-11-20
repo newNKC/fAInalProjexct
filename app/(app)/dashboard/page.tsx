@@ -5,16 +5,18 @@
 //  - ชิปช่วงเวลาตาม requirement (รายปี / รายเดือน / รายอาทิตย์ / 3 วัน / วันนี้ / ทั้งหมด / กำหนดเอง) และกรองตัวเลข+กราฟจริง
 //  - ขอบเขตตามโรล: หัวหน้าต้นสังกัด = คำขอของฝ่ายตัวเอง · หัวหน้าแผนก = คำขอที่เข้าแผนก · ผู้บริหาร/ผู้ดูแลระบบ = ทุกแผนก
 //  - ขอบเขต "ทุกแผนก" (ผู้บริหาร/ผู้ดูแลระบบ) เลือกเจาะดูทีละแผนกได้ ทั้งคำขอ "จาก" แผนกนั้น และคำขอที่ "ส่งถึง" แผนกนั้น
+//  - กดการ์ดสรุป / แท่งกราฟ / แถบหมวดหรือแผนก → เปิดรายการคำขอชุดนั้นใต้การ์ดสรุป แล้วกดเข้าคำขอได้ (?show= ใน URL)
 //  - ช่องค้นหา/กระดิ่งใช้งานได้จริง · งานเกินกำหนดกดเปิดได้และเรียงลำดับได้ · เพิ่มกราฟตามแผนกปลายทาง
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Calendar } from '@tailgrids/icons';
+import { useEffect, useRef, useState } from 'react';
+import { Calendar, Xmark } from '@tailgrids/icons';
 import { GlobalSearch, NotificationBell } from '@/components/page-header';
 import { Guard } from '@/components/role-shell';
 import { allRoles } from '@/data/users';
 import SortSelect, { sortBy, type SortOption } from '@/components/sort-select';
 import { useQueryState } from '@/components/use-query-state';
-import { daysBetween, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
+import StatusBadge from '@/components/status-badge';
+import { daysBetween, displayStatus, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
 import { useStore } from '@/data/store';
 import { toneStyle } from '@/components/status-tone';
 
@@ -86,6 +88,9 @@ function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useQueryState<Period>('period', 'year');
   const [custom, setCustom] = useState({ from: '', to: '' });
   const [overdueSort, setOverdueSort] = useState('late');
+  // ชุดคำขอที่กดเจาะดู: card:<ลำดับการ์ด> · month:<ช่วง> · cat:<id หมวด> · from:<แผนกผู้ขอ> · to:<แผนกปลายทาง>
+  const [show, setShow] = useQueryState<string>('show', '');
+  const drillRef = useRef<HTMLElement>(null);
 
   const inScope = store.requests.filter((r) =>
     scope === 'all'
@@ -102,14 +107,15 @@ function Dashboard() {
   // --- การ์ดสรุป ---
   const approvedStatuses = ['pending_target', 'in_progress', 'pending_acceptance', 'done'];
   const overdue = rows.filter((r) => isOverdue(r));
-  const summary = [
-    { label: 'คำขอทั้งหมด', value: rows.length, detail: 'ในช่วงที่เลือก', color: 'bg-slate-400' },
-    { label: 'อนุมัติแล้ว', value: rows.filter((r) => approvedStatuses.includes(r.status) || store.logs.some((l) => l.requestId === r.id && l.action === 'อนุมัติ')).length, detail: 'ผ่านขั้นถัดไป', color: 'bg-green-600' },
-    { label: 'ปฏิเสธ/ส่งกลับ', value: rows.filter((r) => r.status === 'rejected' || r.status === 'returned').length, detail: 'พร้อมเหตุผล', color: 'bg-red-600' },
-    { label: 'กำลังดำเนินการ', value: rows.filter((r) => r.status === 'in_progress').length, detail: 'มีงานย่อยค้าง', color: 'bg-indigo-600' },
-    { label: 'เสร็จสิ้น', value: rows.filter((r) => r.status === 'done').length, detail: 'ตรวจรับแล้ว', color: 'bg-sky-600' },
-    { label: 'เกินกำหนด', value: overdue.length, detail: 'ต้องติดตาม', color: 'bg-orange-500' },
+  const cards: { label: string; detail: string; color: string; match: (r: Request) => boolean }[] = [
+    { label: 'คำขอทั้งหมด', detail: 'ในช่วงที่เลือก', color: 'bg-slate-400', match: () => true },
+    { label: 'อนุมัติแล้ว', detail: 'ผ่านขั้นถัดไป', color: 'bg-green-600', match: (r) => approvedStatuses.includes(r.status) || store.logs.some((l) => l.requestId === r.id && l.action === 'อนุมัติ') },
+    { label: 'ปฏิเสธ/ส่งกลับ', detail: 'พร้อมเหตุผล', color: 'bg-red-600', match: (r) => r.status === 'rejected' || r.status === 'returned' },
+    { label: 'กำลังดำเนินการ', detail: 'มีงานย่อยค้าง', color: 'bg-indigo-600', match: (r) => r.status === 'in_progress' },
+    { label: 'เสร็จสิ้น', detail: 'ตรวจรับแล้ว', color: 'bg-sky-600', match: (r) => r.status === 'done' },
+    { label: 'เกินกำหนด', detail: 'ต้องติดตาม', color: 'bg-orange-500', match: (r) => isOverdue(r) },
   ];
+  const summary = cards.map((c) => ({ ...c, value: rows.filter(c.match).length }));
 
   // --- กราฟตามช่วงเวลา: ช่วงยาวกว่า 2 เดือน → รายเดือน, สั้นกว่า → รายวัน ---
   const byMonth = daysBetween(from, range.to) > 62;
@@ -127,9 +133,25 @@ function Dashboard() {
   const maxMonth = Math.max(1, ...monthlyRequests.map((m) => m.count));
   const labelEvery = Math.ceil(monthlyRequests.length / 12);
 
-  const categories = store.categories.map((c) => ({ name: c.name, color: c.color, count: rows.filter((r) => r.categoryId === c.id).length }));
+  const categories = store.categories.map((c) => ({ id: c.id, name: c.name, color: c.color, count: rows.filter((r) => r.categoryId === c.id).length }));
   const departments = store.depts.map((d) => ({ name: d, count: rows.filter((r) => store.userById(r.requesterId)?.dept === d).length })).filter((d) => d.count > 0);
   const targets = store.depts.map((d) => ({ name: d, count: rows.filter((r) => r.targetDept === d).length })).filter((d) => d.count > 0);
+
+  // --- เจาะดู: แปลงค่า ?show= เป็นชื่อหัวข้อ + เงื่อนไขกรอง (คำขอชุดเดียวกับตัวเลขที่กด) ---
+  const [kind, ...rest] = show.split(':');
+  const arg = rest.join(':');
+  const drill: { title: string; match: (r: Request) => boolean } | null =
+    kind === 'card' && cards[Number(arg)] ? { title: cards[Number(arg)].label, match: cards[Number(arg)].match }
+      : kind === 'month' && arg ? { title: `ส่งเมื่อ ${byMonth ? monthlyRequests.find((m) => m.key === arg)?.label ?? arg : thaiDate(arg, true)}`, match: (r) => r.createdAt.slice(0, arg.length) === arg }
+        : kind === 'cat' && store.categories.some((c) => String(c.id) === arg) ? { title: `หมวด ${store.categories.find((c) => String(c.id) === arg)!.name}`, match: (r) => String(r.categoryId) === arg }
+          : kind === 'from' && arg ? { title: `ส่งจาก${arg}`, match: (r) => store.userById(r.requesterId)?.dept === arg }
+            : kind === 'to' && arg ? { title: `ส่งถึง${arg}`, match: (r) => r.targetDept === arg }
+              : null;
+  const drillRows = drill ? rows.filter(drill.match).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [];
+  const toggleShow = (key: string) => setShow(show === key ? '' : key);
+  // กดแล้วเลื่อนลงไปที่รายการ
+  useEffect(() => { if (show) drillRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [show]);
+  const picked = (key: string) => show === key ? 'ring-2 ring-indigo-500 ring-offset-1' : '';
 
   const overdueOptions: SortOption<Request>[] = [
     { key: 'late', label: 'เลยกำหนดนานสุด', value: (r) => r.dueDate },
@@ -230,17 +252,48 @@ function Dashboard() {
 
         {/* --- SUMMARY CARDS SECTION --- */}
         <section aria-label="สรุปคำขอ" className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-          {summary.map((item) => (
-            <article key={item.label} className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
+          {summary.map((item, i) => (
+            <button key={item.label} type="button" onClick={() => toggleShow(`card:${i}`)} aria-pressed={show === `card:${i}`} title={`ดูรายการ${item.label}`}
+              className={`rounded-xl border border-slate-300 bg-white p-5 text-left shadow-sm transition hover:border-indigo-400 hover:shadow-md ${picked(`card:${i}`)}`}>
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
                 <span className={`h-2 w-2 rounded-full ${item.color}`} />
                 {item.label}
               </div>
               <p className="mt-2 text-[28px] font-bold leading-8 text-slate-900">{item.value}</p>
               <p className="mt-1 text-xs text-slate-600">{item.detail}</p>
-            </article>
+            </button>
           ))}
         </section>
+
+        {/* --- รายการที่กดเจาะดู --- */}
+        {drill && (
+          <section ref={drillRef} aria-label={`รายการ${drill.title}`} className="mb-6 scroll-mt-4 overflow-hidden rounded-xl border border-indigo-300 bg-white shadow-md">
+            <div className="flex items-center justify-between gap-3 bg-indigo-50 px-5 py-3">
+              <h2 className="text-sm font-semibold text-indigo-800">{drill.title} · {drillRows.length} คำขอ <span className="font-normal text-indigo-700">({periodLabel} · {scopeLabel})</span></h2>
+              <button type="button" onClick={() => setShow('')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+                <Xmark className="size-4" />ปิด
+              </button>
+            </div>
+            <div className="max-h-[420px] divide-y divide-slate-200 overflow-y-auto">
+              {drillRows.length === 0 && <p className="px-5 py-8 text-center text-sm text-slate-600">ไม่มีคำขอในชุดนี้</p>}
+              {drillRows.map((r) => {
+                const body = (
+                  <>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">{r.title}</p>
+                      <p className="mt-1 text-xs text-slate-600">{r.code} · {store.userById(r.requesterId)?.dept} → {r.targetDept} · ส่ง {thaiDate(r.createdAt.slice(0, 10), true)} · ต้องการ {thaiDate(r.dueDate, true)}</p>
+                    </div>
+                    <StatusBadge status={displayStatus(r)} className="shrink-0 bg-white ring-1 ring-current" />
+                  </>
+                );
+                // เปิดได้เฉพาะคำขอที่ผู้ใช้มีสิทธิ์ดู (ตัวเลขนับได้ แต่บางคนเข้าไปดูรายละเอียดไม่ได้)
+                return store.canSee(r)
+                  ? <Link key={r.id} href={`/requests/${r.id}`} style={toneStyle(displayStatus(r))} className="tone-item tone-row flex items-center justify-between gap-3 px-5 py-3">{body}</Link>
+                  : <div key={r.id} style={toneStyle(displayStatus(r))} className="tone-item flex items-center justify-between gap-3 px-5 py-3" title="ไม่มีสิทธิ์เปิดดูรายละเอียดคำขอนี้">{body}</div>;
+              })}
+            </div>
+          </section>
+        )}
 
         {/* --- CHARTS SECTION (Monthly Requests & Categories) --- */}
         <section className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
@@ -250,13 +303,15 @@ function Dashboard() {
             <p className="mt-1 text-xs text-slate-600">{rangeText}</p>
             <div className="mt-6 flex h-[175px] items-end justify-between gap-1">
               {monthlyRequests.map((item, index) => (
-                <div key={item.key} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end" title={`${item.label}: ${item.count} คำขอ`}>
+                <button key={item.key} type="button" disabled={!item.count} onClick={() => toggleShow(`month:${item.key}`)} aria-pressed={show === `month:${item.key}`}
+                  className={`group flex h-full min-w-0 flex-1 flex-col items-center justify-end rounded-md disabled:cursor-default ${show === `month:${item.key}` ? 'bg-indigo-50' : ''}`}
+                  title={`${item.label}: ${item.count} คำขอ${item.count ? ' · กดเพื่อดูรายการ' : ''}`}>
                   <span className="mb-1 text-[11px] font-semibold text-slate-600">{item.count || ''}</span>
                   {/* แท่งกราฟ (ความสูงตามสัดส่วน · เน้นสีช่วงล่าสุด) */}
-                  <div className={`w-full max-w-[30px] rounded-t-[4px] ${index === monthlyRequests.length - 1 ? 'bg-indigo-600' : 'bg-indigo-200'}`}
+                  <div className={`w-full max-w-[30px] rounded-t-[4px] group-enabled:group-hover:bg-indigo-400 ${index === monthlyRequests.length - 1 || show === `month:${item.key}` ? 'bg-indigo-600' : 'bg-indigo-200'}`}
                     style={{ height: `${(item.count / maxMonth) * 128}px` }} />
                   <span className="mt-2 h-3 text-[10px] text-slate-600">{index % labelEvery === 0 ? item.label : ''}</span>
-                </div>
+                </button>
               ))}
             </div>
           </article>
@@ -264,13 +319,15 @@ function Dashboard() {
           {/* สถิติตามหมวดคำขอ */}
           <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-5">
             <h2 className="text-lg font-semibold text-slate-800">ตามหมวดคำขอ</h2>
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-2">
               {categories.map((category) => (
-                <div key={category.name} className="flex items-center gap-2.5">
+                <button key={category.name} type="button" disabled={!category.count} onClick={() => toggleShow(`cat:${category.id}`)} aria-pressed={show === `cat:${category.id}`}
+                  title={category.count ? `ดูคำขอหมวด${category.name}` : undefined}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left enabled:hover:bg-slate-50 disabled:cursor-default ${picked(`cat:${category.id}`)}`}>
                   <span className="w-[100px] shrink-0 text-sm text-slate-600">{category.name}</span>
                   <Bar value={category.count} max={Math.max(...categories.map((c) => c.count))} color={category.color} />
                   <span className="w-7 text-right text-xs font-semibold text-slate-700">{category.count}</span>
-                </div>
+                </button>
               ))}
             </div>
           </article>
@@ -280,25 +337,27 @@ function Dashboard() {
         <section className="grid grid-cols-1 gap-5 xl:grid-cols-12">
           <article className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm xl:col-span-6">
             <h2 className="text-lg font-semibold text-slate-800">ตามแผนกที่ส่งคำขอ</h2>
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-2">
               {departments.length === 0 && <p className="text-sm text-slate-600">ไม่มีคำขอในช่วงนี้</p>}
               {departments.map((department) => (
-                <div key={department.name} className="flex items-center gap-2.5">
+                <button key={department.name} type="button" onClick={() => toggleShow(`from:${department.name}`)} aria-pressed={show === `from:${department.name}`} title={`ดูคำขอที่ส่งจาก${department.name}`}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left hover:bg-slate-50 ${picked(`from:${department.name}`)}`}>
                   <span className="w-[110px] shrink-0 text-sm text-slate-600">{department.name}</span>
                   <Bar value={department.count} max={Math.max(...departments.map((d) => d.count))} />
                   <span className="w-7 text-right text-xs font-semibold text-slate-700">{department.count}</span>
-                </div>
+                </button>
               ))}
             </div>
             <h2 className="mt-8 text-lg font-semibold text-slate-800">ตามแผนกปลายทาง</h2>
-            <div className="mt-5 space-y-4">
+            <div className="mt-5 space-y-2">
               {targets.length === 0 && <p className="text-sm text-slate-600">ไม่มีคำขอในช่วงนี้</p>}
               {targets.map((department) => (
-                <div key={department.name} className="flex items-center gap-2.5">
+                <button key={department.name} type="button" onClick={() => toggleShow(`to:${department.name}`)} aria-pressed={show === `to:${department.name}`} title={`ดูคำขอที่ส่งถึง${department.name}`}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left hover:bg-slate-50 ${picked(`to:${department.name}`)}`}>
                   <span className="w-[110px] shrink-0 text-sm text-slate-600">{department.name}</span>
                   <Bar value={department.count} max={Math.max(...targets.map((d) => d.count))} />
                   <span className="w-7 text-right text-xs font-semibold text-slate-700">{department.count}</span>
-                </div>
+                </button>
               ))}
             </div>
           </article>
