@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ErrorCircle1, Search1 } from '@tailgrids/icons';
 import { NotificationBell } from '@/components/page-header';
+import { toneStyle } from '@/components/status-tone';
 import { daysBetween, isLeafTask, thaiDate, todayISO, type Task } from '@/data/requests';
 import { useStore } from '@/data/store';
 
@@ -196,7 +197,7 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
   const statusLabels = { in_progress: 'กำลังดำเนินการ', overdue: 'เกินกำหนด', completed: 'เสร็จสิ้น' }[task.status];
 
   return (
-    <tr className="transition-colors even:bg-slate-50 hover:bg-indigo-50/60">
+    <tr className="tone-row transition-colors" style={toneStyle(({ in_progress: 'in_progress', overdue: 'overdue', completed: 'done' } as const)[task.status])}>
       <td className="px-4 py-4">
         <p className="font-semibold text-slate-800">{task.title}</p>
         <Link href={`/requests/${task.requestId}`} className="mt-1 block text-xs text-slate-600 hover:text-indigo-600 hover:underline">

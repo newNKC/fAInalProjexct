@@ -1,7 +1,7 @@
 'use client'
 
 // ตารางสไตล์ RequestUI (.table ของนพรัตน์) + เพิ่มให้กดหัวคอลัมน์เพื่อเรียง และแบ่งหน้า (requirement)
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { ChevronDown, ChevronUp } from "@tailgrids/icons";
 
 export type DataColumn<T> = {
@@ -11,10 +11,11 @@ export type DataColumn<T> = {
   sortValue?: (row: T) => string | number
 }
 
-export default function DataTable<T>({ rows, cols, rowKey, initialSort, empty = "ไม่มีรายการ", pageSize = 10 }: {
+export default function DataTable<T>({ rows, cols, rowKey, rowTone, initialSort, empty = "ไม่มีรายการ", pageSize = 10 }: {
   rows: T[]
   cols: DataColumn<T>[]
   rowKey: (row: T) => string | number
+  rowTone?: (row: T) => CSSProperties   // สีพื้นแถวตามสถานะ (toneStyle)
   initialSort?: { key: string, dir: "asc" | "desc" }
   empty?: string
   pageSize?: number
@@ -52,7 +53,7 @@ export default function DataTable<T>({ rows, cols, rowKey, initialSort, empty = 
           </thead>
           <tbody>
             {shown.length === 0 && <tr><td colSpan={cols.length} className="py-10 text-center text-slate-600">{empty}</td></tr>}
-            {shown.map((row) => <tr key={rowKey(row)}>{cols.map((c) => <td key={c.key}>{c.render(row)}</td>)}</tr>)}
+            {shown.map((row) => <tr key={rowKey(row)} className={rowTone ? "tone-row" : undefined} style={rowTone?.(row)}>{cols.map((c) => <td key={c.key}>{c.render(row)}</td>)}</tr>)}
           </tbody>
         </table>
       </div></div>

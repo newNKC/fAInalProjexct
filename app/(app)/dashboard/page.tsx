@@ -15,6 +15,7 @@ import SortSelect, { sortBy, type SortOption } from '@/components/sort-select';
 import { useQueryState } from '@/components/use-query-state';
 import { daysBetween, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
 import { useStore } from '@/data/store';
+import { toneStyle } from '@/components/status-tone';
 
 export default function DashboardPage() {
   return <Guard roles={['approver', 'head', 'executive', 'admin']} perm="dashboard"><Dashboard /></Guard>;
@@ -308,7 +309,7 @@ function Dashboard() {
             <div className="divide-y divide-slate-200">
               {overdue.length === 0 && <p className="px-5 py-8 text-center text-sm text-slate-600">ไม่มีงานเกินกำหนดในช่วงนี้</p>}
               {sortBy(overdue, overdueOptions, overdueSort).map((task) => (
-                <Link key={task.id} href={`/requests/${task.id}`} className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50">
+                <Link key={task.id} href={`/requests/${task.id}`} style={toneStyle('overdue')} className="tone-item tone-row flex items-center justify-between gap-3 px-5 py-4">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-800">{task.title}</p>
                     <p className="mt-1 text-xs text-slate-600">{task.code} · กำหนด {thaiDate(task.dueDate, true)} · {task.targetDept}</p>

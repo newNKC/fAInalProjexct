@@ -12,6 +12,7 @@ import DataTable, { type DataColumn } from "@/components/request-ui/DataTable";
 import ProgressCell from "@/components/request-ui/ProgressCell";
 import { PageHeader } from "@/components/request-ui/RequestUI";
 import StatusTag from "@/components/request-ui/StatusTag";
+import { toneStyle } from "@/components/status-tone";
 import { STATUS_LABEL } from "@/components/status-badge";
 import { displayStatus, lastUpdate, nick, requestProgress, thaiDate, type Request } from "@/data/requests";
 import { useStore } from "@/data/store";
@@ -63,7 +64,12 @@ export default function RequestListPage({ title, sub, hrefBase, requests, mode, 
     ...(mode === "unit"
       ? [{ key: "target", label: "ส่งถึง", sortValue: (r: Request) => r.targetDept, render: (r: Request) => r.targetDept }]
       : [{ key: "from", label: "จากฝ่าย", sortValue: (r: Request) => store.userById(r.requesterId)?.dept ?? "", render: (r: Request) => store.userById(r.requesterId)?.dept }]),
-    { key: "status", label: "สถานะ", sortValue: (r) => STATUS_LABEL[displayStatus(r)], render: (r) => <StatusTag status={STATUS_LABEL[displayStatus(r)]} /> },
+    { key: "status", label: "สถานะ", sortValue: (r) => STATUS_LABEL[displayStatus(r)], render: (r) => (
+      // ป้ายพื้นขาว+ขอบสีเดียวกับตัวหนังสือ จะได้ไม่จมไปกับพื้นแถวที่เป็นสีตามสถานะ (ยกเว้นเกินกำหนดที่เป็นป้ายแดงทึบอยู่แล้ว)
+      <span className={displayStatus(r) === "overdue" ? undefined : "[&>*]:!bg-white [&>*]:ring-1 [&>*]:ring-current [&>*]:whitespace-nowrap"}>
+        <StatusTag status={STATUS_LABEL[displayStatus(r)]} />
+      </span>
+    ) },
     { key: "progress", label: "ความคืบหน้า", sortValue: (r) => requestProgress(r, store.tasks), render: (r) => <ProgressCell value={requestProgress(r, store.tasks)} /> },
     { key: "updated", label: "อัปเดต", sortValue: (r) => lastUpdate(r, store.logs), render: (r) => thaiDate(lastUpdate(r, store.logs), true) },
   ];
@@ -73,7 +79,7 @@ export default function RequestListPage({ title, sub, hrefBase, requests, mode, 
       <PageHeader title={title} sub={sub} actions={actions} statusFilter={{ hrefBase, selectedCategories, selectedStatus }} />
       {banners}
       <CategoryFilter hrefBase={hrefBase} selectedCategories={selectedCategories} selectedStatus={selectedStatus} options={categoryNames} />
-      <DataTable rows={rows} cols={cols} rowKey={(r) => r.id} initialSort={{ key: "updated", dir: "desc" }} empty="ไม่มีคำขอที่ตรงกับตัวกรอง" />
+      <DataTable rows={rows} cols={cols} rowKey={(r) => r.id} rowTone={(r) => toneStyle(displayStatus(r))} initialSort={{ key: "updated", dir: "desc" }} empty="ไม่มีคำขอที่ตรงกับตัวกรอง" />
       <p className="mt-3 text-xs text-slate-600">กดชื่อเรื่องเพื่อดูรายละเอียด · {rows.length} รายการ</p>
     </>
   );

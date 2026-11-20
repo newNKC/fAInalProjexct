@@ -51,6 +51,11 @@
   .table td { @apply border-t px-5 py-4; border-color: var(--line); }
   .table tbody tr:nth-child(even) { background: #f8fafc; }
   .table tbody tr:hover { background: #faf5ff; }
+  /* แถวที่มีสีตามสถานะ (components/status-tone.ts) · แถบซ้ายเข้ม + พื้นอ่อน */
+  .tone-row, .table tbody tr.tone-row { background: var(--row-bg); }
+  .tone-row:hover, .table tbody tr.tone-row:hover { background: color-mix(in srgb, var(--row-bg) 88%, var(--row-accent)); }
+  .tone-row > td:first-child { box-shadow: inset 4px 0 0 var(--row-accent); }
+  .tone-item { background: var(--row-bg); box-shadow: inset 4px 0 0 var(--row-accent); }
   .table__id { @apply font-medium; color: var(--brand); }
   .table__action { @apply text-right; }
   .cell-sub { @apply text-xs; color: #4b5563; }

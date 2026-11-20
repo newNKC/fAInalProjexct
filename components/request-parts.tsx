@@ -13,6 +13,7 @@ import {
     type Request, type Status,
 } from "@/data/requests";
 import { useStore } from "@/data/store";
+import { toneStyle } from "@/components/status-tone";
 import { cn } from "@/utils/cn";
 
 export const fmtSize = (bytes: number) => bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -214,7 +215,8 @@ export function TaskTree({ r }: { r: Request }) {
                         </div>
                         <ul>
                             {subtasksOf(m, store.tasks).map((s) => (
-                                <li key={s.id} className="grid grid-cols-[1fr_7rem_6rem_12rem] items-center gap-3 border-t border-line px-3 py-2 text-sm">
+                                <li key={s.id} className="tone-item grid grid-cols-[1fr_7rem_6rem_12rem] items-center gap-3 border-t border-line px-3 py-2 text-sm"
+                                    style={toneStyle(s.progress >= 100 ? "done" : s.dueDate < today ? "overdue" : "in_progress")}>
                                     <span className="text-ink">{s.title}</span>
                                     <span className="text-xs text-ink-2">{nick(store.userById(s.assigneeId)?.name)}</span>
                                     <span className={cn("text-xs", s.progress < 100 && s.dueDate < today ? "font-semibold text-[#BE123C]" : "text-ink-3")}>ถึง {thaiDate(s.dueDate)}</span>
