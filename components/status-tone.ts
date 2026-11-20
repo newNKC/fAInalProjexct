@@ -12,6 +12,7 @@ export const STATUS_TONE: Record<DisplayStatus, { bg: string; accent: string }> 
     in_progress: { bg: "#E6F0FF", accent: "#2563EB" },        // กำลังดำเนินการ · ฟ้า
     pending_acceptance: { bg: "#E0F7FA", accent: "#0891B2" }, // รอตรวจรับ · ฟ้าอมเขียว
     done: { bg: "#E3F6EA", accent: "#16A34A" },               // เสร็จสิ้น · เขียว
+    done_late: { bg: "#EEF7DC", accent: "#CA8A04" },          // เสร็จสิ้นแต่ส่งมอบช้า · เขียวอมเหลือง แถบซ้ายสีส้มเหลือง
     overdue: { bg: "#FDE4E4", accent: "#B91C1C" },            // เกินกำหนด · แดงเข้ม
     fix: { bg: "#FFEEDB", accent: "#EA580C" },                // ขอให้แก้ไข · ส้ม
 };

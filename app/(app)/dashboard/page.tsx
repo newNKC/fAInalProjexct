@@ -16,7 +16,7 @@ import { allRoles } from '@/data/users';
 import SortSelect, { sortBy, type SortOption } from '@/components/sort-select';
 import { useQueryState } from '@/components/use-query-state';
 import StatusBadge from '@/components/status-badge';
-import { daysBetween, displayStatus, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
+import { daysBetween, displayStatus, isDoneLate, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
 import { useStore } from '@/data/store';
 import { toneStyle } from '@/components/status-tone';
 
@@ -115,7 +115,10 @@ function Dashboard() {
     { label: 'เสร็จสิ้น', detail: 'ตรวจรับแล้ว', color: 'bg-sky-600', match: (r) => r.status === 'done' },
     { label: 'เกินกำหนด', detail: 'ต้องติดตาม', color: 'bg-orange-500', match: (r) => isOverdue(r) },
   ];
-  const summary = cards.map((c) => ({ ...c, value: rows.filter(c.match).length }));
+  const lateDone = rows.filter(isDoneLate).length;
+  const summary = cards.map((c) => ({ ...c, value: rows.filter(c.match).length,
+    // การ์ดเสร็จสิ้น: บอกด้วยว่ามีกี่คำขอที่ส่งมอบช้ากว่าวันที่ต้องการ
+    detail: c.label === 'เสร็จสิ้น' && lateDone ? `ตรวจรับแล้ว · ส่งมอบช้า ${lateDone}` : c.detail }));
 
   // --- กราฟตามช่วงเวลา: ช่วงยาวกว่า 2 เดือน → รายเดือน, สั้นกว่า → รายวัน ---
   const byMonth = daysBetween(from, range.to) > 62;

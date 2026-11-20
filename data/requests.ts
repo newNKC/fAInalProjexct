@@ -10,7 +10,8 @@ export type Status =
     | "pending_acceptance"   // รอตรวจรับ
     | "done"                 // เสร็จสิ้น
 
-export type DisplayStatus = Status | "overdue" | "fix"
+// done_late = เสร็จสิ้นแล้ว แต่แผนกปลายทางส่งมอบงาน (ครบ 100%) หลังวันที่ต้องการ
+export type DisplayStatus = Status | "overdue" | "fix" | "done_late"
 
 // ไฟล์แนบ: เก็บข้อมูลไฟล์ไว้ที่นี่ ส่วนตัวไฟล์จริงเก็บใน IndexedDB ของเบราว์เซอร์ (data/files.ts) ตาม id
 export type Attachment = { id: string, name: string, size: number, type: string }
@@ -28,6 +29,7 @@ export type Request = {
     teamId: number | null     // ทีมที่รับผิดชอบ (ไม่บังคับ)
     status: Status
     fixReason?: string | null // ผู้ขอกด "ขอให้แก้ไข" หลังงานเสร็จ · ล้างเมื่อแผนกปลายทางปิดงาน 100% อีกครั้ง
+    deliveredAt?: string | null // เวลาที่แผนกปลายทางส่งมอบงานครบ 100% (เข้าสถานะรอตรวจรับ) ครั้งล่าสุด · ใช้ดูว่าเสร็จช้ากว่าวันที่ต้องการไหม
     attachments: Attachment[]
     createdAt: string         // ISO
 }
@@ -148,8 +150,12 @@ export const todayISO = () => {
 export const isOverdue = (r: Request, today = todayISO()) =>
     ["pending_target", "in_progress"].includes(r.status) && r.dueDate < today && !r.fixReason
 
+// เสร็จสิ้นแต่ส่งมอบช้า = วันที่ส่งมอบ (ครบ 100%) เลยวันที่ต้องการ · นับจากวันส่งมอบ ไม่ใช่วันที่ผู้ขอกดตรวจรับ (ผู้ขอตรวจช้าไม่ใช่ความผิดของแผนก)
+export const isDoneLate = (r: Request) =>
+    r.status === "done" && !!r.deliveredAt && r.deliveredAt.slice(0, 10) > r.dueDate
+
 export const displayStatus = (r: Request): DisplayStatus =>
-    r.status === "in_progress" && r.fixReason ? "fix" : isOverdue(r) ? "overdue" : r.status
+    r.status === "in_progress" && r.fixReason ? "fix" : isOverdue(r) ? "overdue" : isDoneLate(r) ? "done_late" : r.status
 
 export const daysBetween = (fromISO: string, toISO: string) =>
     Math.round((Date.parse(toISO.slice(0, 10)) - Date.parse(fromISO.slice(0, 10))) / 864e5)
@@ -234,6 +240,11 @@ const details: Record<number, string> = {
 
 const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5).toISOString().slice(0, 10)
 
+// วันที่แผนกปลายทางส่งมอบงานครบ 100% ของข้อมูลตัวอย่าง (ปกติ 2 วันก่อนวันที่ต้องการ)
+// บางคำขอส่งมอบช้า เพื่อให้เห็นสถานะ "เสร็จสิ้น (เกินกำหนด)"
+const lateDays: Record<number, number> = { 109: 4, 119: 3, 124: 2 };
+const deliveredOn = (code: number, due: string) => code === 139 ? "2026-11-09" : lateDays[code] ? addDays(due, lateDays[code]) : addDays(due, -2);
+
 export const seedRequests: Request[] = rows.map(([code, title, cat, requester, status, created, due, approver, target], i) => ({
     id: i + 1,
     code: `REQ-${String(code).padStart(4, "0")}`,
@@ -246,6 +257,7 @@ export const seedRequests: Request[] = rows.map(([code, title, cat, requester, s
     approverId: approver,
     teamId: [148, 135, 139].includes(code) ? 1 : [146, 141].includes(code) ? 4 : null,
     status,
+    deliveredAt: status === "pending_acceptance" || status === "done" ? at(deliveredOn(code, due), "16:00") : null,
     attachments: [],
     createdAt: at(created, code === 152 ? "09:40" : code === 148 ? "10:15" : code === 139 ? "13:05" : "09:00"),
 }))
@@ -319,7 +331,7 @@ export const seedLogs: Log[] = (() => {
         }
         add(r.id, head, "รับงานและมอบหมาย", "pending_target", "in_progress", addDays(c, 2));
         if (r.status === "in_progress") continue;
-        const end = code === 139 ? "2026-11-09" : addDays(r.dueDate, -2);
+        const end = deliveredOn(code, r.dueDate);
         add(r.id, closer, "แผนกปลายทางปิดงาน 100%", "in_progress", "pending_acceptance", end, "", "16:00");
         if (r.status === "pending_acceptance") continue;
         add(r.id, r.requesterId, "ตรวจรับงาน", "pending_acceptance", "done", addDays(end, 1));

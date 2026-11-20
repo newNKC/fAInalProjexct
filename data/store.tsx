@@ -49,6 +49,15 @@ export type PlanDraft = {
 const DATA_KEY = "rq-data-v6";   // เปลี่ยนเลขเวอร์ชันเมื่อโครงข้อมูลเปลี่ยน → เบราว์เซอร์โหลดข้อมูลตัวอย่างใหม่
 const SESSION_KEY = "rq-session-v1";
 
+// ข้อมูลที่บันทึกไว้ก่อนมีฟิลด์ deliveredAt → เติมจากประวัติ (ครั้งล่าสุดที่เข้าสถานะรอตรวจรับ)
+const withDeliveredAt = (d: Data): Data => ({
+    ...d,
+    requests: d.requests.map((r) => r.deliveredAt !== undefined ? r : {
+        ...r,
+        deliveredAt: d.logs.filter((l) => l.requestId === r.id && l.toStatus === "pending_acceptance").map((l) => l.createdAt).sort().at(-1) ?? null,
+    }),
+});
+
 const seed = (): Data => ({
     users: seedUsers,
     permissions: defaultPermissions,
@@ -75,7 +84,7 @@ function useStoreValue() {
     useEffect(() => {
         try {
             const saved = localStorage.getItem(DATA_KEY);
-            if (saved) setData(JSON.parse(saved));
+            if (saved) setData(withDeliveredAt(JSON.parse(saved)));
             const s = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
             if (s) setSession(JSON.parse(s));
         } catch {
@@ -296,7 +305,7 @@ function useStoreValue() {
         if (task && request?.status === "in_progress") {
             const leaves = tasks.filter((t) => t.requestId === task.requestId && isLeafTask(t, tasks));
             if (leaves.length > 0 && leaves.every((t) => t.progress === 100) && requestProgress(request, tasks) === 100) {
-                next = changeStatus(patchRequest(next, task.requestId, { fixReason: null }), task.requestId, "pending_acceptance",
+                next = changeStatus(patchRequest(next, task.requestId, { fixReason: null, deliveredAt: now() }), task.requestId, "pending_acceptance",
                     request.fixReason ? "แก้ไขตามที่ขอแล้ว ปิดงาน 100%" : "แผนกปลายทางปิดงาน 100%");
             }
         }

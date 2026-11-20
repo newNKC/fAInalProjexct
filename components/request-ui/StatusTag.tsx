@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<
   "กำลังดำเนินการ": "blue",
   "รอตรวจรับ": "cyan",
   "เสร็จสิ้น": "success",
+  "เสร็จสิ้น (เกินกำหนด)": "warning",
   "เกินกำหนด": "error",
   "ขอให้แก้ไข": "warning",
 };
