@@ -13,6 +13,7 @@ import { Card, fmtSize } from "@/components/request-parts";
 import { saveFile } from "@/data/files";
 import { findHead, nick, todayISO, type Attachment } from "@/data/requests";
 import { useStore, type RequestDraft } from "@/data/store";
+import { useAttachmentViewer } from "@/components/attachment-viewer";
 import { cn } from "@/utils/cn";
 
 export const fieldClass = "w-full rounded-lg border border-base-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-input-primary-focus-border focus:ring-4 focus:ring-input-primary-focus-border/20"
@@ -29,6 +30,7 @@ type Props = {
 
 export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit }: Props) {
     const store = useStore();
+    const viewer = useAttachmentViewer();
     const user = store.user!;
     const today = todayISO();
     const fileInput = useRef<HTMLInputElement>(null);
@@ -170,12 +172,15 @@ export default function RequestForm({ initial, submitLabel, cancelHref, onSubmit
                     <ul className="mt-2 flex flex-wrap gap-2">
                         {draft.attachments.map((a) => (
                             <li key={a.id} className="flex items-center gap-2 rounded-lg bg-page px-3 py-1.5 text-sm ring-1 ring-line">
-                                <Paperclip2 className="size-4 text-ink-3" />{a.name}<span className="text-xs text-ink-3">{fmtSize(a.size)}</span>
+                                <Paperclip2 className="size-4 text-ink-3" />
+                                <button type="button" onClick={() => viewer.view(a)} title="เปิดดู" className="hover:text-brand hover:underline">{a.name}</button>
+                                <span className="text-xs text-ink-3">{fmtSize(a.size)}</span>
                                 <button type="button" aria-label={`ลบ ${a.name}`} onClick={() => set("attachments", draft.attachments.filter((x) => x.id !== a.id))}><Xmark className="size-4 text-ink-3 hover:text-red-600" /></button>
                             </li>
                         ))}
                     </ul>
                 )}
+                {viewer.dialog}
 
                 <div className="mt-5 flex items-center gap-2.5 text-sm text-ink">
                     <Checkbox id="talked" checked={talked} onChange={(e) => setTalked(e.target.checked)} />

@@ -8,7 +8,7 @@ import StatusTag from "@/components/request-ui/StatusTag";
 import { Card, Detail } from "@/components/request-ui/RequestUI";
 import { STATUS_LABEL } from "@/components/status-badge";
 import { fmtSize } from "@/components/request-parts";
-import { openFile } from "@/data/files";
+import { useAttachmentViewer } from "@/components/attachment-viewer";
 import { displayStatus, thaiDate, type Request } from "@/data/requests";
 import { useStore } from "@/data/store";
 
@@ -16,6 +16,7 @@ export default function RequestSummaryCard({ r, className = "split-layout__wide"
   r: Request; className?: string; footer?: ReactNode; showDetail?: boolean
 }) {
   const store = useStore();
+  const viewer = useAttachmentViewer();
   const requester = store.userById(r.requesterId);
   const category = store.categories.find((c) => c.id === r.categoryId);
 
@@ -56,7 +57,7 @@ export default function RequestSummaryCard({ r, className = "split-layout__wide"
                 <p className="cell-sub">{fmtSize(f.size)}</p>
               </div>
             </div>
-            <button type="button" onClick={async () => { if (!await openFile(f.id, f.name)) store.showToast(`ไม่พบไฟล์ ${f.name} ในเครื่องนี้`); }}
+            <button type="button" onClick={() => viewer.view(f)}
               className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[#4338CA] hover:underline">
               <Eye size={18} aria-hidden="true" />
               เปิดดู
@@ -64,6 +65,7 @@ export default function RequestSummaryCard({ r, className = "split-layout__wide"
           </div>
         ))}
       </div>
+      {viewer.dialog}
       {footer}
     </Card>
   );

@@ -2,11 +2,9 @@
 
 // ชิ้นส่วนที่หลายหน้าใช้ร่วมกันเมื่อแสดงคำขอ 1 รายการ
 // RequestSummary (การ์ดสรุปคำขอ) · RequestStepper (ขั้นตอนคำขอ) · RequestInfo (ข้อมูลคำขอ) · RequestHistory (ประวัติ) · MainTasks / TaskTree (งาน)
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Download1, Eye, FileText, Paperclip2 } from "@tailgrids/icons";
-import { fileUrl, openFile } from "@/data/files";
-import { Dialog, DialogBody, DialogHeader, DialogTitle } from "@/components/tailgrids/core/dialog";
-import { Backdrop } from "@/components/tailgrids/core/overlay";
+import { useAttachmentViewer } from "@/components/attachment-viewer";
 import CategoryBadge from "@/components/category-badge";
 import ProgressBar from "@/components/progress-bar";
 import StatusBadge, { STATUS_LABEL } from "@/components/status-badge";
@@ -41,17 +39,7 @@ export function Card({ title, hint, children, className, action }: { title?: str
 export function RequestSummary({ r, compact }: { r: Request, compact?: boolean }) {
     const store = useStore();
     const requester = store.userById(r.requesterId);
-    const [preview, setPreview] = useState<{ name: string, type: string, url: string } | null>(null);
-    const missing = (name: string) => store.showToast(`ไม่พบไฟล์ ${name} ในเบราว์เซอร์นี้ (ไฟล์แนบเก็บไว้ในเบราว์เซอร์ที่แนบเท่านั้น)`);
-    // เปิดดูในหน้าเลย (รูป/PDF) ไม่ต้องเปิดแท็บใหม่ จึงไม่โดนเบราว์เซอร์บล็อกป๊อปอัป · ไฟล์ชนิดอื่นดาวน์โหลดแทน
-    const view = async (f: { id: string, name: string, type: string }) => {
-        const viewable = f.type.startsWith("image/") || f.type === "application/pdf" || /\.(png|jpe?g|gif|webp|pdf)$/i.test(f.name);
-        if (!viewable) { if (!await openFile(f.id, f.name, true)) missing(f.name); return; }
-        const url = await fileUrl(f.id);
-        if (!url) return missing(f.name);
-        setPreview({ name: f.name, type: f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "image/*"), url });
-    };
-    const closePreview = () => { if (preview) URL.revokeObjectURL(preview.url); setPreview(null); };
+    const viewer = useAttachmentViewer();
 
     const meta = [
         ["ผู้ขอ", `${nick(requester?.name)} · ${requester?.dept ?? "-"}`],
@@ -86,29 +74,15 @@ export function RequestSummary({ r, compact }: { r: Request, compact?: boolean }
                         <Paperclip2 className="size-4 text-ink-3" />
                         <span className="flex-1 truncate text-ink">{f.name}</span>
                         <span className="text-xs text-ink-3">{fmtSize(f.size)}</span>
-                        <button type="button" onClick={() => view(f)}
+                        <button type="button" onClick={() => viewer.view(f)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><Eye className="size-4" />เปิดดู</button>
-                        <button type="button" onClick={async () => { if (!await openFile(f.id, f.name, true)) missing(f.name); }}
+                        <button type="button" onClick={() => viewer.download(f)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"><Download1 className="size-4" />ดาวน์โหลด</button>
                     </li>
                 ))}
             </ul>
 
-            {/* ตัวอย่างไฟล์แนบ (รูป / PDF) */}
-            <Backdrop isOpen={!!preview} onOpenChange={(open) => !open && closePreview()}>
-                <Dialog aria-label={`ไฟล์แนบ ${preview?.name ?? ""}`} className="max-w-4xl">
-                    <DialogHeader><DialogTitle className="truncate pr-8">{preview?.name}</DialogTitle></DialogHeader>
-                    <DialogBody className="flex flex-col gap-3">
-                        {preview && (preview.type === "application/pdf"
-                            ? <iframe src={preview.url} title={preview.name} className="h-[70vh] w-full rounded-lg ring-1 ring-line" />
-                            : <img src={preview.url} alt={preview.name} className="mx-auto max-h-[70vh] max-w-full rounded-lg object-contain ring-1 ring-line" />)}
-                        <div className="flex justify-end gap-4 text-xs font-semibold">
-                            <a href={preview?.url} target="_blank" rel="noreferrer" className="text-brand hover:underline">เปิดในแท็บใหม่</a>
-                            <a href={preview?.url} download={preview?.name} className="text-brand hover:underline">ดาวน์โหลด</a>
-                        </div>
-                    </DialogBody>
-                </Dialog>
-            </Backdrop>
+            {viewer.dialog}
         </Card>
     )
 }
