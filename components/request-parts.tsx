@@ -11,6 +11,7 @@ import StatusBadge, { STATUS_LABEL } from "@/components/status-badge";
 import {
     displayStatus, findHead, nick, requestProgress, subtasksOf, taskProgress, thaiDate, thaiDateTime, todayISO,
     type Request, type Status,
+    isTaskDoneLate, daysBetween,
 } from "@/data/requests";
 import { useStore } from "@/data/store";
 import { toneStyle } from "@/components/status-tone";
@@ -220,10 +221,12 @@ export function TaskTree({ r }: { r: Request }) {
                         <ul>
                             {subtasksOf(m, store.tasks).map((s) => (
                                 <li key={s.id} className="tone-item grid grid-cols-[1fr_7rem_6rem_12rem] items-center gap-3 border-t border-line px-3 py-2 text-sm"
-                                    style={toneStyle(s.progress >= 100 ? "done" : s.dueDate < today ? "overdue" : "in_progress")}>
+                                    style={toneStyle(s.progress >= 100 ? (isTaskDoneLate(s) ? "done_late" : "done") : s.dueDate < today ? "overdue" : "in_progress")}>
                                     <span className="text-ink">{s.title}</span>
                                     <span className="text-xs text-ink-2">{nick(store.userById(s.assigneeId)?.name)}</span>
-                                    <span className={cn("text-xs", s.progress < 100 && s.dueDate < today ? "font-semibold text-[#BE123C]" : "text-ink-3")}>ถึง {thaiDate(s.dueDate)}</span>
+                                    <span className={cn("text-xs", s.progress < 100 && s.dueDate < today ? "font-semibold text-[#BE123C]" : isTaskDoneLate(s) ? "font-semibold text-[#9A3412]" : "text-ink-3")}>
+                                        ถึง {thaiDate(s.dueDate)}{isTaskDoneLate(s) && <span className="block">เสร็จช้า {daysBetween(s.dueDate, s.completedAt!)} วัน</span>}
+                                    </span>
                                     <ProgressBar value={s.progress} />
                                 </li>
                             ))}

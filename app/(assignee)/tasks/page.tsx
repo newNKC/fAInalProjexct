@@ -9,10 +9,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ErrorCircle1, Search1 } from '@tailgrids/icons';
 import { NotificationBell } from '@/components/page-header';
 import { toneStyle } from '@/components/status-tone';
-import { daysBetween, isLeafTask, thaiDate, todayISO, type Task } from '@/data/requests';
+import { daysBetween, isLeafTask, isTaskDoneLate, thaiDate, todayISO, type Task } from '@/data/requests';
 import { useStore } from '@/data/store';
 
-type TaskStatus = 'in_progress' | 'overdue' | 'completed';
+// completed_late = งานย่อยเสร็จ 100% แต่หลังกำหนดส่ง
+type TaskStatus = 'in_progress' | 'overdue' | 'completed' | 'completed_late';
 type TaskItem = {
   id: number; title: string; reqCode: string; requestId: number; subCategory: string; mainTask: string;
   dueDate: string; progress: number; status: TaskStatus; editable: boolean; completedAt: string | null;
@@ -37,7 +38,7 @@ export default function MyTasksPage() {
     .filter((t) => t.assigneeId === user.id && isLeafTask(t, store.tasks))
     .map((t: Task) => {
       const r = store.requests.find((x) => x.id === t.requestId);
-      const status: TaskStatus = t.progress >= 100 ? 'completed' : t.dueDate < today ? 'overdue' : 'in_progress';
+      const status: TaskStatus = t.progress >= 100 ? (isTaskDoneLate(t) ? 'completed_late' : 'completed') : t.dueDate < today ? 'overdue' : 'in_progress';
       return {
         id: t.id, title: t.title, reqCode: r?.code ?? '-', requestId: t.requestId,
         subCategory: store.categories.find((c) => c.id === r?.categoryId)?.name ?? '-',
@@ -50,7 +51,7 @@ export default function MyTasksPage() {
   /** กรองรายการงานตามคำค้นหา (ชื่อชิ้นงาน, รหัสคำขอ, หมวด) แล้วเรียงตามหัวคอลัมน์ที่เลือก */
   const filteredTasks = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase('th');
-    const rank: Record<TaskStatus, number> = { overdue: 0, in_progress: 1, completed: 2 };
+    const rank: Record<TaskStatus, number> = { overdue: 0, in_progress: 1, completed_late: 2, completed: 3 };
     const value = (t: TaskItem) => sort.key === 'status' ? rank[t.status] : sort.key === 'progress' ? t.progress : t[sort.key];
     return tasks
       .filter((task) => `${task.title} ${task.reqCode} ${task.subCategory}`.toLocaleLowerCase('th').includes(query))
@@ -63,7 +64,7 @@ export default function MyTasksPage() {
 
   // --- STATISTICAL CALCULATIONS ---
   const totalCount = tasks.length;
-  const inProgressCount = tasks.filter((task) => task.status !== 'completed').length;
+  const inProgressCount = tasks.filter((task) => task.status === 'in_progress' || task.status === 'overdue').length;
   const overdueTasks = tasks.filter((task) => task.status === 'overdue');
   // คำขอที่ผู้ขอกด "ขอให้แก้ไข" และมีงานของผู้ใช้คนนี้อยู่
   const fixRequests = store.requests.filter((r) => r.status === 'in_progress' && r.fixReason && tasks.some((t) => t.requestId === r.id));
@@ -193,11 +194,11 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
   task: TaskItem; editing: boolean; onEdit: () => void; onUpdateProgress: (task: TaskItem, progress: number) => void;
 }) {
   const today = todayISO();
-  const statusStyles = { in_progress: 'bg-indigo-50 text-indigo-600', overdue: 'bg-red-600 text-white', completed: 'bg-green-100 text-green-700' }[task.status];
-  const statusLabels = { in_progress: 'กำลังดำเนินการ', overdue: 'เกินกำหนด', completed: 'เสร็จสิ้น' }[task.status];
+  const statusStyles = { in_progress: 'bg-indigo-50 text-indigo-600', overdue: 'bg-red-600 text-white', completed: 'bg-green-100 text-green-700', completed_late: 'bg-[#ECFCCB] text-[#3F6212]' }[task.status];
+  const statusLabels = { in_progress: 'กำลังดำเนินการ', overdue: 'เกินกำหนด', completed: 'เสร็จสิ้น', completed_late: 'เสร็จสิ้น (เกินกำหนด)' }[task.status];
 
   return (
-    <tr className="tone-row transition-colors" style={toneStyle(({ in_progress: 'in_progress', overdue: 'overdue', completed: 'done' } as const)[task.status])}>
+    <tr className="tone-row transition-colors" style={toneStyle(({ in_progress: 'in_progress', overdue: 'overdue', completed: 'done', completed_late: 'done_late' } as const)[task.status])}>
       <td className="px-4 py-4">
         <p className="font-semibold text-slate-800">{task.title}</p>
         <Link href={`/requests/${task.requestId}`} className="mt-1 block text-xs text-slate-600 hover:text-indigo-600 hover:underline">
@@ -208,6 +209,7 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
       <td className="px-4 py-4 text-slate-700">
         {thaiDate(task.dueDate, true)}
         {task.status === 'overdue' && <span className="block text-xs text-red-600">เลย {daysBetween(task.dueDate, today)} วัน</span>}
+        {task.status === 'completed_late' && task.completedAt && <span className="block text-xs text-[#9A3412]">เสร็จช้า {daysBetween(task.dueDate, task.completedAt)} วัน</span>}
       </td>
       <td className="px-4 py-4">
         <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap ${statusStyles}`}>
@@ -232,7 +234,7 @@ function TaskRow({ task, editing, onEdit, onUpdateProgress }: {
             aria-label={`อัปเดตความคืบหน้า ${task.title}`}
             className="group flex w-full items-center gap-2 text-left disabled:cursor-default disabled:opacity-60">
             <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-              <span className={`block h-full rounded-full ${task.status === 'completed' ? 'bg-green-600' : 'bg-indigo-600'}`} style={{ width: `${task.progress}%` }} />
+              <span className={`block h-full rounded-full ${task.status === 'completed' || task.status === 'completed_late' ? 'bg-green-600' : 'bg-indigo-600'}`} style={{ width: `${task.progress}%` }} />
             </span>
             <span className="w-9 text-right text-xs font-semibold text-slate-600">{task.progress}%</span>
           </button>

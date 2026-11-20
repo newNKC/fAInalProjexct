@@ -11,7 +11,7 @@ import PageHeader from "@/components/page-header";
 import ReasonDialog from "@/components/reason-dialog";
 import { MainTasks, RequestHistory, RequestInfo, RequestStepper, RequestSummary, TaskTree } from "@/components/request-parts";
 import { NoAccess } from "@/components/role-shell";
-import { canApprove } from "@/data/requests";
+import { canApprove, isDeliveredLate, lateDays } from "@/data/requests";
 import { homeFor } from "@/data/menus";
 import { useStore } from "@/data/store";
 import { cn } from "@/utils/cn";
@@ -57,7 +57,7 @@ export default function Page() {
                     <Banner tone="danger" icon={<InfoCircle />}>{r.targetDept}ปฏิเสธคำขอนี้{lastReason ? ` · เหตุผล: ${lastReason.reason}` : ""}</Banner>
                 )}
                 {r.status === "pending_acceptance" && mine && (
-                    <Banner tone="success" icon={<CheckCircle1 />} action={
+                    <Banner tone={isDeliveredLate(r) ? "warning" : "success"} icon={<CheckCircle1 />} action={
                         <div className="flex gap-2">
                             <Button size="sm" appearance="outline" onPress={() => setFixOpen(true)}>ขอให้แก้ไข</Button>
                             <Button size="sm" variant="success" onPress={() => setAcceptOpen(true)}>
@@ -65,10 +65,10 @@ export default function Page() {
                             </Button>
                         </div>
                     }>
-                        งานเสร็จครบ 100% แล้ว · รอคุณตรวจรับ ถ้ายังไม่ตรงที่ต้องการ กด “ขอให้แก้ไข” พร้อมเหตุผล
+                        งานเสร็จครบ 100% แล้ว{isDeliveredLate(r) ? ` แต่ส่งมอบช้ากว่าวันที่ต้องการ ${lateDays(r)} วัน (เกินกำหนด)` : ""} · รอคุณตรวจรับ ถ้ายังไม่ตรงที่ต้องการ กด “ขอให้แก้ไข” พร้อมเหตุผล
                     </Banner>
                 )}
-                {r.status === "pending_acceptance" && !mine && <Banner tone="info" icon={<InfoCircle />}>งานเสร็จครบ 100% แล้ว · รอผู้ขอตรวจรับ</Banner>}
+                {r.status === "pending_acceptance" && !mine && <Banner tone={isDeliveredLate(r) ? "warning" : "info"} icon={<InfoCircle />}>งานเสร็จครบ 100% แล้ว{isDeliveredLate(r) ? ` · ส่งมอบช้ากว่าวันที่ต้องการ ${lateDays(r)} วัน (เกินกำหนด)` : ""} · รอผู้ขอตรวจรับ</Banner>}
                 {canApprove(store.users, user, r) && (
                     <Banner tone="info" icon={<Shield1Check />} action={<Link href={`/approvals/${r.id}`} className={cn(buttonStyles({ size: "sm" }), "whitespace-nowrap")}>พิจารณา</Link>}>
                         คำขอนี้รอคุณอนุมัติในฐานะหัวหน้าต้นสังกัด
@@ -100,6 +100,7 @@ export default function Page() {
                 onClose={() => setAcceptOpen(false)}
                 onConfirm={() => { store.confirmDone(r.id); setAcceptOpen(false); store.showToast(`ตรวจรับงาน ${r.code} แล้ว · ปิดคำขอเรียบร้อย`); }}>
                 ยืนยันว่างานตรงกับที่ขอ · ปิดคำขอแล้วจะแก้ไขต่อไม่ได้ ถ้ายังไม่ตรงให้กด “ขอให้แก้ไข” แทน
+                {isDeliveredLate(r) && <span className="mt-2 block font-semibold text-[#9A3412]">งานนี้ส่งมอบช้ากว่าวันที่ต้องการ {lateDays(r)} วัน · ปิดคำขอแล้วจะแสดงเป็น “เสร็จสิ้น (เกินกำหนด)”</span>}
             </ConfirmDialog>
 
             <ReasonDialog open={fixOpen} onClose={() => setFixOpen(false)} title={`ขอให้แก้ไขงาน ${r.code}`} confirmLabel="ส่งกลับให้แผนกปลายทางแก้"
