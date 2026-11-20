@@ -30,6 +30,12 @@ export const saveFile = (id: string, file: Blob) => run("readwrite", (s) => s.pu
 export const loadFile = (id: string) => run<Blob | undefined>("readonly", (s) => s.get(id));
 export const deleteFile = (id: string) => run("readwrite", (s) => s.delete(id));
 
+// ลิงก์ชั่วคราวของไฟล์ (ใช้แสดงตัวอย่างในหน้า) · null = ไม่มีไฟล์นี้ในเบราว์เซอร์นี้ · ใช้เสร็จให้ URL.revokeObjectURL
+export async function fileUrl(id: string): Promise<string | null> {
+    const blob = await loadFile(id).catch(() => undefined);
+    return blob ? URL.createObjectURL(blob) : null;
+}
+
 // เปิดดูในแท็บใหม่ (PDF/รูปเปิดได้ในเบราว์เซอร์) หรือดาวน์โหลด
 export async function openFile(id: string, name: string, download = false): Promise<boolean> {
     const blob = await loadFile(id).catch(() => undefined);
