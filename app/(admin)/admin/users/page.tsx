@@ -221,5 +221,5 @@ function UsersPage() {
 }
 // ตรวจสิทธิ์ "users" ในหน้า "สิทธิ์โรล" (ปิดสิทธิ์แล้วเข้าหน้าไม่ได้)
 export default function Page() {
-  return <Guard roles={["admin"]} perm="users"><UsersPage /></Guard>;
+  return <Guard roles={allRoles} perm="users"><UsersPage /></Guard>;
 }

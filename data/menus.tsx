@@ -37,21 +37,35 @@ export const roleMenus: Record<Role, MenuDef[]> = {
     admin: [M.dashboard, M.users, M.categories, M.teams, M.permissions],
 };
 
+// เมนูที่ได้มาจากการติ๊กสิทธิ์ในหน้า "สิทธิ์โรล" (ไม่ผูกกับตำแหน่ง ให้โรลไหนก็ได้)
+// เช่น ติ๊ก "ดู Dashboard" ให้ผู้ขอ → ผู้ขอเห็นเมนู Dashboard · ติ๊ก "ส่งคำขอ" ให้ผู้บริหาร → เห็นคำขอของฉัน + ส่งคำขอใหม่
+const permMenus: Record<string, MenuDef[]> = {
+    submit: [M.requests, M.newRequest],
+    dashboard: [M.dashboard],
+    teams: [M.teams],
+    users: [M.users],
+    categories: [M.categories],
+};
+
 // ลำดับเมนูเมื่อคนหนึ่งมีหลายโรล: งานที่รอทำก่อน → คำขอ → ภาพรวม → เมนูผู้ดูแลระบบ
 const order = [M.approvals, M.incoming, M.tasks, M.deptRequests, M.requests, M.newRequest, M.teams, M.dashboard, M.users, M.categories, M.permissions].map((m) => m.href);
 
 // รวมเมนูของทุกโรลที่ผู้ใช้มี (ไม่ซ้ำ) · ซ่อนเมนูที่ผู้ดูแลระบบปิดสิทธิ์ไว้
 export function menuFor(user: User, hasPerm: (perm: string, roles: Role[]) => boolean): MenuItem[] {
     const defs = new Map<string, { def: MenuDef, roles: Role[] }>();
+    const add = (def: MenuDef, role: Role) => {
+        const e = defs.get(def.href) ?? { def, roles: [] };
+        if (!e.roles.includes(role)) e.roles.push(role);
+        defs.set(def.href, e);
+    };
     for (const role of user.roles) {
-        for (const def of roleMenus[role]) {
-            const e = defs.get(def.href) ?? { def, roles: [] };
-            e.roles.push(role);
-            defs.set(def.href, e);
-        }
+        for (const def of roleMenus[role]) add(def, role);
+        // สิทธิ์ที่ผู้ดูแลระบบติ๊กเพิ่มให้โรลนี้ → เพิ่มเมนูของสิทธิ์นั้น
+        for (const [perm, list] of Object.entries(permMenus)) if (hasPerm(perm, [role])) list.forEach((def) => add(def, role));
     }
-    // ผู้ดูแลระบบอย่างเดียว ใช้ลำดับตาม Figma ของผู้ดูแลระบบ
-    const seq = user.roles.length === 1 ? roleMenus[user.roles[0]].map((m) => m.href) : order;
+    // มีโรลเดียวและไม่ได้เมนูเพิ่มจากสิทธิ์ → ใช้ลำดับตาม Figma ของโรลนั้น
+    const own = user.roles.length === 1 ? roleMenus[user.roles[0]].map((m) => m.href) : null;
+    const seq = own && [...defs.keys()].every((h) => own.includes(h)) ? own : order;
     return seq
         .filter((href) => defs.has(href))
         .map((href) => defs.get(href)!)

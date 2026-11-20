@@ -1,6 +1,7 @@
 'use client';
 
 import { Guard } from '@/components/role-shell';
+import { allRoles } from '@/data/users';
 
 // หมวดคำขอ (งานของพิชญ์ เดิม admin/categories/page.tsx + Data/workmeData.ts)
 // ปรับให้ใช้ข้อมูลจริงจาก store: เพิ่ม/แก้/ลบ/เปิด-ปิดใช้งานแล้วมีผลกับแบบฟอร์มส่งคำขอและทุกหน้า · "ใช้ N คำขอ" นับจากคำขอจริง
@@ -182,5 +183,5 @@ function CategoriesPage() {
 
 // ตรวจสิทธิ์ "categories" ในหน้า "สิทธิ์โรล" (ปิดสิทธิ์แล้วเข้าหน้าไม่ได้)
 export default function Page() {
-  return <Guard roles={["admin"]} perm="categories"><CategoriesPage /></Guard>;
+  return <Guard roles={allRoles} perm="categories"><CategoriesPage /></Guard>;
 }

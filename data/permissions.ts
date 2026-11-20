@@ -23,3 +23,18 @@ export const defaultPermissions: Permission[] = [
 // ช่องที่ห้ามติ๊กเด็ดขาด (requirement: ผู้ดูแลระบบอนุมัติคำขอไม่ได้)
 export const isLocked = (permissionId: string, role: Role) =>
     permissionId === "approve" && role === "admin"
+
+// สิทธิ์ที่ผูกกับตำแหน่งในขั้นตอนงาน: ใช้ได้เฉพาะโรลที่มีหน้าที่นั้นจริง (ปิดได้ แต่เพิ่มให้โรลอื่นไม่ได้)
+// เช่น "อนุมัติคำขอของคนในแผนก" ระบบส่งคำขอไปหาหัวหน้าต้นสังกัดของฝ่าย จึงให้โรลอื่นไม่ได้
+export const WORKFLOW_ROLES: Record<string, Role[]> = {
+    approve: ["approver"],
+    decide: ["head"],
+    breakdown: ["head"],
+    progress: ["head", "assignee"],
+}
+export const isBound = (permissionId: string, role: Role) =>
+    !!WORKFLOW_ROLES[permissionId] && !WORKFLOW_ROLES[permissionId].includes(role)
+
+// ล้างค่าที่ติ๊กไว้ในช่องที่ใช้ไม่ได้ (เช่นข้อมูลเก่าที่บันทึกไว้ก่อนมีกฎนี้)
+export const sanitizePermissions = (list: Permission[]): Permission[] =>
+    list.map((p) => ({ ...p, roles: p.roles.filter((r) => !isLocked(p.id, r) && !isBound(p.id, r)) }))

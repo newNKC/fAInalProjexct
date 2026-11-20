@@ -11,6 +11,7 @@ import { Close, Pencil1, Plus, Search1, Trash1, UserMultiple4, Xmark } from '@ta
 import ConfirmDialog from '@/components/confirm-dialog';
 import { NotificationBell } from '@/components/page-header';
 import { Guard } from '@/components/role-shell';
+import { allRoles } from '@/data/users';
 import SortSelect, { sortBy, type SortOption } from '@/components/sort-select';
 import { nick } from '@/data/requests';
 import { useStore } from '@/data/store';
@@ -20,7 +21,7 @@ import type { Team } from '@/data/teams';
 type ModalState = { type: 'create' } | { type: 'edit'; teamId: number } | { type: 'member'; teamId: number } | null;
 
 export default function TeamsPage() {
-  return <Guard roles={['head', 'admin']} perm="teams"><Teams /></Guard>;
+  return <Guard roles={allRoles} perm="teams"><Teams /></Guard>;
 }
 
 const inputClass = 'h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';

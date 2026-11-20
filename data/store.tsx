@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { seedCategories, type Category } from "@/data/categories";
-import { defaultPermissions, type Permission } from "@/data/permissions";
+import { defaultPermissions, isBound, isLocked, type Permission } from "@/data/permissions";
 import {
     canView, findApprover, isLeafTask, nowISO, requestProgress, seedLogs, seedRequests, seedTasks,
     type Attachment, type Log, type Request, type Status, type Task,
@@ -345,7 +345,8 @@ function useStoreValue() {
     }));
 
     // โรลชุดนี้ (อย่างน้อย 1 โรล) ได้สิทธิ์ข้อนี้ไหม (หน้า "สิทธิ์โรล")
-    const hasPerm = (perm: string, roles: Role[]) => !!data.permissions.find((p) => p.id === perm)?.roles.some((r) => roles.includes(r));
+    // สิทธิ์ที่ผูกกับตำแหน่ง/ห้ามเด็ดขาด ไม่นับแม้จะมีค่าเก่าติ๊กค้างไว้ (data/permissions.ts)
+    const hasPerm = (perm: string, roles: Role[]) => !!data.permissions.find((p) => p.id === perm)?.roles.some((r) => roles.includes(r) && !isBound(perm, r) && !isLocked(perm, r));
     const can = (perm: string) => !!user && hasPerm(perm, user.roles);
 
     const depts = Array.from(new Set(data.users.map((u) => u.dept)));

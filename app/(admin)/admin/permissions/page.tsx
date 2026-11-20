@@ -7,20 +7,27 @@ import { Checkbox } from "@/components/tailgrids/core/checkbox";
 import { TableBody, TableCell, TableHead, TableHeader, TableRoot, TableRow } from "@/components/tailgrids/core/table";
 import PageHeader from "@/components/page-header";
 import RoleBadge from "@/components/role-badge";
-import { defaultPermissions, isLocked, type Permission } from "@/data/permissions";
+import { defaultPermissions, isBound, isLocked, sanitizePermissions, WORKFLOW_ROLES, type Permission } from "@/data/permissions";
+import { Guard } from "@/components/role-shell";
+import { ROLE_LABEL } from "@/components/role-badge";
 import { useStore } from "@/data/store";
 import { allRoles, type Role } from "@/data/users";
 
+// หน้าสิทธิ์โรลเข้าได้เฉพาะผู้ดูแลระบบเสมอ (ไม่ขึ้นกับการติ๊ก กันผู้ดูแลระบบล็อกตัวเองออก)
 export default function Page() {
+    return <Guard roles={["admin"]}><PermissionsPage /></Guard>;
+}
+
+function PermissionsPage() {
     // states
     // ค่าที่บันทึกเก็บในข้อมูลกลาง → เมนูของแต่ละโรลซ่อน/แสดงตามสิทธิ์นี้ (components/role-shell.tsx)
     const store = useStore();
     const saved = store.permissions;                                                      // ค่าที่บันทึกล่าสุด
-    const [permissions, setPermissions] = useState<Permission[]>(saved);                 // ค่าที่กำลังแก้อยู่บนจอ
+    const [permissions, setPermissions] = useState<Permission[]>(() => sanitizePermissions(saved));                 // ค่าที่กำลังแก้อยู่บนจอ
     const [justSaved, setJustSaved] = useState(false);                                   // โชว์ข้อความ "บันทึกแล้ว"
 
     // มีอะไรเปลี่ยนจากที่บันทึกไว้ไหม (เทียบเป็นข้อความ JSON)
-    const changed = JSON.stringify(permissions) !== JSON.stringify(saved);
+    const changed = JSON.stringify(permissions) !== JSON.stringify(sanitizePermissions(saved));
 
     // ติ๊ก / เอาติ๊กออก 1 ช่อง
     const toggle = (permissionId: string, role: Role, checked: boolean) => {
@@ -36,14 +43,14 @@ export default function Page() {
 
     // ปุ่มบันทึก
     const save = () => {
-        store.setPermissions(permissions);
+        store.setPermissions(sanitizePermissions(permissions));
         setJustSaved(true);
         store.showToast("บันทึกสิทธิ์โรลแล้ว · เมนูของผู้ใช้เปลี่ยนตามทันที");
     }
 
     // ปุ่มคืนค่าเริ่มต้น
     const reset = () => {
-        setPermissions(defaultPermissions);
+        setPermissions(sanitizePermissions(defaultPermissions));
         setJustSaved(false);
     }
 
@@ -57,6 +64,10 @@ export default function Page() {
                 <Locked3 className="size-5 shrink-0" />
                 ฟีเจอร์เสริม (optional) · ผู้ดูแลระบบไม่มีสิทธิ์อนุมัติคำขอ (ล็อกตาม requirement)
             </div>
+            <p className="mb-4 text-sm text-ink-2">
+                ติ๊กแล้วมีผลทันทีหลังบันทึก: โรลที่ได้สิทธิ์จะเห็นเมนูและใช้งานหน้านั้นได้ · ช่อง <span className="font-semibold text-ink-3">—</span> คือสิทธิ์ที่ผูกกับตำแหน่งในขั้นตอนงาน
+                (เช่น อนุมัติคำขอ ระบบส่งไปหาหัวหน้าต้นสังกัดของฝ่ายเท่านั้น) จึงปิดได้แต่เพิ่มให้โรลอื่นไม่ได้
+            </p>
 
             {/* permission matrix */}
             <TableRoot className="w-full bg-white text-sm shadow-sm">
@@ -81,6 +92,10 @@ export default function Page() {
                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600">
                                             <Locked3 className="size-3.5" />ห้าม
                                         </span>
+                                    ) : isBound(p.id, r) ? (
+                                        // สิทธิ์ผูกกับตำแหน่ง: โรลนี้ไม่มีหน้าที่นี้ในขั้นตอนงาน
+                                        <span className="text-base font-semibold text-ink-3" title={`ผูกกับตำแหน่ง ${WORKFLOW_ROLES[p.id].map((x) => ROLE_LABEL[x]).join(" / ")}`}
+                                            aria-label={`${p.label} · ใช้ได้เฉพาะ ${WORKFLOW_ROLES[p.id].map((x) => ROLE_LABEL[x]).join(" / ")}`}>—</span>
                                     ) : (
                                         <Checkbox
                                             id={`perm-${p.id}-${r}`}

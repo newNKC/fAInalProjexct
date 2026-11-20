@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { Calendar } from '@tailgrids/icons';
 import { GlobalSearch, NotificationBell } from '@/components/page-header';
 import { Guard } from '@/components/role-shell';
+import { allRoles } from '@/data/users';
 import SortSelect, { sortBy, type SortOption } from '@/components/sort-select';
 import { useQueryState } from '@/components/use-query-state';
 import { daysBetween, isOverdue, thaiDate, thaiMonths, todayISO, type Request } from '@/data/requests';
@@ -18,7 +19,7 @@ import { useStore } from '@/data/store';
 import { toneStyle } from '@/components/status-tone';
 
 export default function DashboardPage() {
-  return <Guard roles={['approver', 'head', 'executive', 'admin']} perm="dashboard"><Dashboard /></Guard>;
+  return <Guard roles={allRoles} perm="dashboard"><Dashboard /></Guard>;
 }
 
 type Period = 'year' | 'month' | 'week' | '3days' | 'today' | 'all' | 'custom';
@@ -71,6 +72,8 @@ function Dashboard() {
   if (user.roles.includes('executive') || user.roles.includes('admin')) scopes.push({ value: 'all', label: 'ทุกแผนก' });
   if (user.roles.includes('head')) scopes.push({ value: 'target', label: `คำขอที่เข้า${user.dept}` });
   if (user.roles.includes('approver')) scopes.push({ value: 'source', label: `คำขอของ${user.dept}` });
+  // โรลอื่นที่ได้สิทธิ์ดู Dashboard เพิ่ม (เช่น ผู้ขอ/ผู้รับงาน) → เห็นคำขอของแผนกตัวเอง
+  if (scopes.length === 0) scopes.push({ value: 'source', label: `คำขอของ${user.dept}` });
 
   // --- STATE MANAGEMENT --- (เก็บใน URL เพื่อให้กดย้อนกลับ/ส่งลิงก์แล้วยังเห็นช่วงเดิม)
   const [scopeParam, setScope] = useQueryState<Scope>('scope', scopes[0].value);
