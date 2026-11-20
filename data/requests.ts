@@ -98,16 +98,22 @@ export const canApprove = (users: User[], user: User, r: Request) => {
 // ใครดูคำขอนี้ได้ · คนในแผนกเดียวกับผู้ขอ / แผนกปลายทาง (หัวหน้า, ผู้รับงาน) / ผู้บริหาร / ผู้ดูแลระบบ
 // เปิด "จำกัดการมองเห็นตามทีม" แล้ว คนในแผนกปลายทางที่ไม่ได้อยู่ทีมนั้นจะมองไม่เห็น (ยกเว้นหัวหน้าแผนก)
 // assigned = ผู้ใช้มีงานย่อยในคำขอนี้ (เห็นคำขอที่ตัวเองได้งานเสมอ แม้เปิดจำกัดการมองเห็นตามทีม)
+// ใครเห็นคำขอไหน
+//  - ผู้บริหาร / ผู้ดูแลระบบ / คนที่ได้รับงานย่อยในคำขอนั้น / ผู้ขอเอง → เห็นเสมอ
+//  - ฝั่งแผนกปลายทาง (คำขอส่งเข้าแผนกตัวเอง): หัวหน้าแผนกเห็นทุกคำขอ
+//      ปิดจำกัดตามทีม → ทุกคนในแผนกเห็น
+//      เปิดจำกัดตามทีม → เห็นเฉพาะคำขอที่มอบให้ "ทีมของตัวเอง" (คำขอที่ยังไม่ระบุทีมก็ไม่เห็น)
+//        ยกเว้นหัวหน้าต้นสังกัดที่คำขอมาจากฝ่ายตัวเอง
+//  - ฝั่งผู้ขอ (คำขอที่คนในฝ่ายตัวเองส่ง) → เห็น (ไม่เกี่ยวกับการจำกัดตามทีม ซึ่งเป็นเรื่องของฝั่งรับงาน)
 export const canView = (users: User[], user: User, r: Request, opts: { restrictByTeam: boolean, teamMembers: number[] | null, assigned?: boolean }) => {
-    if (user.roles.includes("executive") || user.roles.includes("admin") || opts.assigned) return true;
-    const requester = users.find((u) => u.id === r.requesterId);
-    if (requester?.dept === user.dept) return true;
+    if (user.roles.includes("executive") || user.roles.includes("admin") || opts.assigned || r.requesterId === user.id) return true;
+    const sameRequesterDept = users.find((u) => u.id === r.requesterId)?.dept === user.dept;
     if (r.targetDept === user.dept) {
-        if (user.roles.includes("head")) return true;
-        if (opts.restrictByTeam && opts.teamMembers) return opts.teamMembers.includes(user.id);
-        return true;
+        if (user.roles.includes("head") || !opts.restrictByTeam) return true;
+        if (sameRequesterDept && user.roles.includes("approver")) return true;
+        return !!opts.teamMembers?.includes(user.id);
     }
-    return false;
+    return sameRequesterDept;
 }
 
 // ===== งานและความคืบหน้า =====

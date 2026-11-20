@@ -157,7 +157,7 @@ function Teams() {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-indigo-50/70 px-4 py-3 text-sm font-medium text-indigo-700">
             <div className="flex items-center gap-2.5">
               <UserMultiple4 className="h-4 w-4 shrink-0 text-indigo-600" />
-              <p>ทีมย่อยเป็นฟีเจอร์เสริม · คนหนึ่งอยู่ได้หลายทีม · เปิดจำกัดการมองเห็นแล้ว ผู้รับงานจะเห็นเฉพาะคำขอของทีมตัวเอง</p>
+              <p>ทีมย่อยเป็นฟีเจอร์เสริม · คนหนึ่งอยู่ได้หลายทีม · เปิดจำกัดการมองเห็นแล้ว ผู้รับงานจะเห็นเฉพาะคำขอที่มอบให้ทีมตัวเอง และคำขอที่ตัวเองได้รับงาน (หัวหน้าแผนกยังเห็นทั้งหมด)</p>
             </div>
             <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 sm:text-sm">
               <input type="checkbox" checked={store.restrictByTeam}
